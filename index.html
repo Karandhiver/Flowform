@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <title>FlowForm Dashboard</title>
+  
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel for parsing JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Firebase (Compat libraries for single-file browser usage) -->
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #f4f5f5; --card-bg: #ffffff; --text-main: #111111; --text-muted: #555555;
+      --text-light: #888888; --primary-red: #e53238; --primary-hover: #d42d33;
+      --border-color: #eaeaeb; --input-bg: #ffffff; --input-border: #cccccc;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background-color: var(--bg-color); color: var(--text-main); font-family: var(--font-family); -webkit-font-smoothing: antialiased; overflow-x: hidden; width: 100vw; }
+    .app-wrapper { min-height: 100vh; display: flex; flex-direction: column; width: 100%; overflow: hidden; }
+    
+    /* Navigation */
+    .navbar { background: var(--card-bg); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 50; width: 100%; }
+    .nav-container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; height: 64px; }
+    .nav-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 18px; font-weight: bold; color: var(--text-main); }
+    .nav-logo-icon { background: var(--primary-red); color: white; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; flex-shrink: 0; }
+    .nav-actions { display: flex; align-items: center; gap: 16px; }
+    .nav-link { background: none; border: none; font-size: 14px; font-weight: 500; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 8px 0; }
+    .nav-link.active { color: var(--primary-red); }
+    .user-email-badge { background: #f4f5f5; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--text-main); border: 1px solid var(--border-color); display: none; }
+    @media(min-width: 768px) { .user-email-badge { display: block; } }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; white-space: nowrap; max-width: 100%; }
+    .btn:disabled { opacity: 0.7; cursor: not-allowed; }
+    .btn-primary { background: var(--primary-red); color: white; }
+    .btn-dark { background: var(--text-main); color: white; }
+    .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
+    .btn-danger { background: transparent; border: 1px solid #ffcccc; color: #d32f2f; }
+    .btn-google { background: white; border: 1px solid var(--border-color); color: var(--text-main); box-shadow: 0 1px 2px rgba(0,0,0,0.05); padding: 12px 24px; font-size: 16px; width: 100%; }
+    .btn-google:hover { background: #fbfbfb; border-color: #cccccc; }
+
+    /* Layout & Cards */
+    .main-content { flex-grow: 1; display: flex; flex-direction: column; width: 100%; }
+    .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 32px 16px; }
+    .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); width: 100%; overflow: hidden; }
+    .card-header { padding: 16px; border-bottom: 1px solid var(--border-color); background: #fbfbfb; display: flex; flex-direction: column; gap: 12px; }
+    .card-body { padding: 16px; }
+    
+    /* Typography & Utilities */
+    .title-h1 { font-size: 28px; font-weight: 800; color: var(--text-main); margin-bottom: 8px; line-height: 1.2; word-break: break-word; }
+    .title-h2 { font-size: 18px; font-weight: bold; color: var(--text-main); margin-bottom: 8px; word-break: break-word; }
+    .text-muted { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
+    .flex-between { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+    .flex-center { display: flex; justify-content: center; align-items: center; }
+    .mb-6 { margin-bottom: 24px; }
+
+    /* Inputs */
+    .form-group { margin-bottom: 20px; width: 100%; }
+    .form-label { display: block; font-size: 12px; font-weight: bold; color: var(--text-main); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-input, .form-textarea { width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px; font-size: 16px !important; font-family: inherit; outline: none; box-sizing: border-box; }
+    .form-input:focus, .form-textarea:focus { border-color: var(--primary-red); box-shadow: 0 0 0 1px var(--primary-red); }
+    .form-textarea { resize: vertical; min-height: 100px; }
+
+    /* Landing Page */
+    .landing-hero { text-align: center; padding: 40px 16px; background: white; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+    .landing-title { font-size: 36px; font-weight: 900; line-height: 1.1; margin-bottom: 16px; letter-spacing: -1px; width: 100%; }
+    .landing-subtitle { font-size: 16px; color: var(--text-muted); max-width: 600px; margin: 0 auto 32px auto; line-height: 1.6; padding: 0 10px; width: 100%; }
+
+    /* Dashboard Grid & Tables */
+    .stats-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 32px; width: 100%; }
+    .stat-card { background: white; border: 1px solid var(--border-color); padding: 20px; border-radius: 8px; display: flex; align-items: center; gap: 16px; width: 100%; }
+    .stat-icon { width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 24px; }
+    .stat-icon.red { background: #ffebee; color: var(--primary-red); }
+    .stat-icon.blue { background: #e3f2fd; color: #1976d2; }
+    .stat-icon.green { background: #e8f5e9; color: #388e3c; }
+    .stat-value { font-size: 24px; font-weight: bold; margin-top: 4px; }
+    
+    .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; display: block; border-radius: 8px; }
+    .table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    .table th { text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); background: #fbfbfb; white-space: nowrap; }
+    .table td { padding: 16px; border-bottom: 1px solid var(--border-color); font-size: 14px; word-break: break-word; }
+    .badge { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
+    .badge-green { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+    .badge-yellow { background: #fff8e1; color: #f57f17; border: 1px solid #ffecb3; }
+    .badge-gray { background: var(--bg-color); color: var(--text-main); }
+
+    /* Tabs & Modals */
+    .tabs-wrapper { background: white; border-bottom: 1px solid var(--border-color); width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tabs-container { display: flex; gap: 24px; padding: 0 16px; max-width: 1100px; margin: 0 auto; width: max-content; }
+    .tab { padding: 16px 0; background: none; border: none; font-size: 14px; font-weight: 500; color: var(--text-muted); cursor: pointer; position: relative; white-space: nowrap; flex-shrink: 0; }
+    .tab.active { color: var(--primary-red); }
+    .tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--primary-red); border-radius: 3px 3px 0 0; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(17,17,17,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; backdrop-filter: blur(2px); }
+    .modal-content { background: white; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 95vh; display: flex; flex-direction: column; }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: #fbfbfb; border-radius: 12px 12px 0 0; flex-shrink: 0; }
+    .modal-close { background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-light); line-height: 1; padding: 0 8px; }
+    .modal-body { padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .modal-footer { padding: 16px 20px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; background: white; border-radius: 0 0 12px 12px; flex-shrink: 0; }
+    .modal-footer .btn { width: 100%; }
+
+    /* Integration Grid */
+    .integration-grid { display: grid; grid-template-columns: 1fr; gap: 24px; width: 100%; }
+    .code-block { background: #111; border-radius: 0 0 8px 8px; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .code-block-body { padding: 16px; color: #e6e6e6; font-family: monospace; font-size: 13px; white-space: pre; width: max-content; min-width: 100%; }
+
+    /* Login */
+    .login-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg-color); padding: 16px; width: 100%; }
+    .login-card { background: white; width: 100%; max-width: 400px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden; padding: 40px 24px; text-align: center; }
+
+    /* Desktop Queries */
+    @media (min-width: 768px) {
+      .landing-title { font-size: 56px; } .landing-subtitle { font-size: 20px; } .title-h1 { font-size: 32px; }
+      .flex-between { flex-direction: row; align-items: center; }
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+      .integration-grid { grid-template-columns: 1fr 1fr; }
+      .card-header { flex-direction: row; }
+      .modal-footer { flex-direction: row; } .modal-footer .btn { width: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // --- YOUR FIREBASE CONFIGURATION ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCbgSxM872VsvEYjc4tLrDPOFCEDE2FFfo",
+      authDomain: "karangauri-3cf49.firebaseapp.com",
+      projectId: "karangauri-3cf49",
+      storageBucket: "karangauri-3cf49.firebasestorage.app",
+      messagingSenderId: "473556188605",
+      appId: "1:473556188605:web:9a3e787b37ae84ed1766d4"
+    };
+
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+    const appIdentifier = 'flowform-production';
+
+    // SVG Icons
+    const IconLock = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>;
+    const IconFileText = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
+    const IconLogOut = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>;
+    const IconCode = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>;
+    const IconInbox = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>;
+    const IconBarChart = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>;
+    const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
+    const IconMail = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>;
+    const IconArrowLeft = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
+    const IconTrash = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
+    const IconTerminal = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>;
+    const IconGoogle = () => <svg viewBox="0 0 24 24" width="1.2em" height="1.2em"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" /><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" /><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /></svg>;
+
+    function App() {
+      const [user, setUser] = useState(null);
+      const [loading, setLoading] = useState(true);
+      // HARDCODE THE INITIAL VIEW TO ALWAYS BE 'landing'
+      const [view, setView] = useState('landing');
+      const [activeForm, setActiveForm] = useState(null);
+      const [forms, setForms] = useState([]);
+      const [submissions, setSubmissions] = useState([]);
+
+      useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+          setUser(currentUser);
+          setLoading(false);
+          // Notice we DO NOT automatically change the view here.
+          // It stays on 'landing' until the user explicitly clicks a button.
+        });
+        return () => unsubscribe();
+      }, []);
+
+      useEffect(() => {
+        if (!user) {
+          setForms([]); setSubmissions([]); return;
+        }
+        
+        const formsRef = db.collection('artifacts').doc(appIdentifier).collection('users').doc(user.uid).collection('forms');
+        const unsubForms = formsRef.onSnapshot((snapshot) => {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          data.sort((a, b) => b.createdAt - a.createdAt); setForms(data);
+        });
+
+        const subsRef = db.collection('artifacts').doc(appIdentifier).collection('users').doc(user.uid).collection('submissions');
+        const unsubSubs = subsRef.onSnapshot((snapshot) => {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          data.sort((a, b) => b.createdAt - a.createdAt); setSubmissions(data);
+        });
+
+        return () => { unsubForms(); unsubSubs(); };
+      }, [user]);
+
+      const handleCreateForm = async (name, targetEmail, web3formsKey) => {
+        if (!user) return false;
+        try {
+          await db.collection('artifacts').doc(appIdentifier).collection('users').doc(user.uid).collection('forms').add({
+            name: name || 'Untitled Form', targetEmail: targetEmail || user.email || 'user@example.com',
+            web3formsKey: web3formsKey || '', createdAt: Date.now(), status: 'active'
+          });
+          return true;
+        } catch (error) { alert(`Failed to create.\n${error.message}`); return false; }
+      };
+
+      const handleDeleteForm = async (formId) => {
+        if (!user) return;
+        try {
+          await db.collection('artifacts').doc(appIdentifier).collection('users').doc(user.uid).collection('forms').doc(formId).delete();
+          if (activeForm && activeForm.id === formId) { setView('dashboard'); setActiveForm(null); }
+        } catch (e) {}
+      };
+
+      const handleUpdateForm = async (formId, updates) => {
+        if (!user) return;
+        try {
+          await db.collection('artifacts').doc(appIdentifier).collection('users').doc(user.uid).collection('forms').doc(formId).update(updates);
+          setActiveForm(prev => ({ ...prev, ...updates }));
+        } catch (e) {}
+      };
+
+      const handleMockSubmit = async (formId, formData, web3formsKey) => {
+        if (!user) return;
+        try {
+          await db.collection('artifacts').doc(appIdentifier).collection('users').doc(user.uid).collection('submissions').add({ 
+            formId, data: formData, createdAt: Date.now(), read: false 
+          });
+
+          if (web3formsKey) {
+            await fetch('https://api.web3forms.com/submit', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ access_key: web3formsKey, subject: 'New Submission from FlowForm', from_name: 'FlowForm Notification', ...formData })
+            });
+          }
+        } catch (error) { throw error; }
+      };
+
+      const handleSignOut = () => {
+        auth.signOut();
+        setView('landing');
+        setActiveForm(null);
+      };
+
+      if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading FlowForm...</div>;
+      
+      if (view === 'login') {
+        return <LoginView onBack={() => setView('landing')} onLoginSuccess={() => setView('dashboard')} />;
+      }
+
+      return (
+        <div className="app-wrapper">
+          <nav className="navbar">
+            <div className="nav-container">
+              <div className="nav-brand" onClick={() => setView('landing')}>
+                <div className="nav-logo-icon"><IconFileText /></div>
+                <span style={{ display: 'inline-block' }}>FlowForm</span>
+              </div>
+              <div className="nav-actions">
+                {user ? (
+                  <React.Fragment>
+                    <span className="user-email-badge">{user.email}</span>
+                    <button onClick={() => { setView('dashboard'); setActiveForm(null); }} className={`nav-link ${view === 'dashboard' ? 'active' : ''}`}>Dashboard</button>
+                    <button onClick={handleSignOut} className="nav-link"><IconLogOut /> <span style={{display: window.innerWidth > 768 ? 'inline' : 'none'}}>Sign Out</span></button>
+                  </React.Fragment>
+                ) : (
+                  <button onClick={() => setView('login')} className="btn btn-dark">Sign In</button>
+                )}
+              </div>
+            </div>
+          </nav>
+          <main className="main-content">
+            {view === 'landing' && <LandingView onGetStarted={() => { user ? setView('dashboard') : setView('login') }} user={user} />}
+            {view === 'dashboard' && user && <DashboardView forms={forms} submissions={submissions} onCreateForm={handleCreateForm} onSelectForm={(form) => { setActiveForm(form); setView('form-detail'); }} user={user} />}
+            {view === 'form-detail' && user && activeForm && <FormDetailView form={activeForm} submissions={submissions.filter(s => s.formId === activeForm.id)} onBack={() => { setView('dashboard'); setActiveForm(null); }} onDelete={() => handleDeleteForm(activeForm.id)} onUpdate={(updates) => handleUpdateForm(activeForm.id, updates)} onMockSubmit={(data) => handleMockSubmit(activeForm.id, data, activeForm.web3formsKey)} />}
+          </main>
+        </div>
+      );
+    }
+
+    // --- SUB-COMPONENTS ---
+
+    function LoginView({ onBack, onLoginSuccess }) {
+      const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+      const handleGoogleLogin = async () => {
+        setIsAuthenticating(true);
+        const provider = new firebase.auth.GoogleAuthProvider();
+        try {
+          await auth.signInWithPopup(provider);
+          onLoginSuccess(); // Manually push to dashboard ONLY after successful click
+        } catch (error) {
+          console.error(error);
+          alert(`Login Failed: ${error.message}\nMake sure your domain is added to Firebase Authorized Domains.`);
+          setIsAuthenticating(false);
+        }
+      };
+
+      return (
+        <div className="login-wrapper">
+          <div className="login-card">
+            <div style={{ width: '56px', height: '56px', background: 'var(--primary-red)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: 'white', fontSize: '28px' }}><IconLock /></div>
+            <h2 className="title-h1" style={{ fontSize: '24px', marginBottom: '12px' }}>Welcome to FlowForm</h2>
+            <p className="text-muted" style={{ marginBottom: '32px' }}>Securely manage your forms and submissions using your Google account.</p>
+            
+            <button onClick={handleGoogleLogin} disabled={isAuthenticating} className="btn btn-google" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+              {isAuthenticating ? 'Connecting...' : <React.Fragment><IconGoogle /> Continue with Google</React.Fragment>}
+            </button>
+            
+            <button type="button" onClick={onBack} className="nav-link" style={{ width: '100%', justifyContent: 'center', margin: '24px auto 0' }}>&larr; Back to Home</button>
+          </div>
+        </div>
+      );
+    }
+
+    function LandingView({ onGetStarted, user }) {
+      return (
+        <div className="landing-hero">
+          <h1 className="landing-title">The form backend <br/>for your website</h1>
+          <p className="landing-subtitle">FlowForm captures submissions, sends email notifications via Web3Forms, and strictly separates data by user account.</p>
+          <button onClick={onGetStarted} className="btn btn-primary" style={{ fontSize: '16px', padding: '16px 32px' }}>
+            {user ? 'Go to Dashboard' : 'Get Started for Free'}
+          </button>
+        </div>
+      );
+    }
+
+    function DashboardView({ forms, submissions, onCreateForm, onSelectForm, user }) {
+      const [showNewModal, setShowNewModal] = useState(false);
+      const [newFormName, setNewFormName] = useState('');
+      const [newFormEmail, setNewFormEmail] = useState(user.email || '');
+      const [newFormWeb3Key, setNewFormWeb3Key] = useState(''); 
+      const [isSubmitting, setIsSubmitting] = useState(false);
+
+      const handleCreate = async (e) => {
+        e.preventDefault(); setIsSubmitting(true);
+        const success = await onCreateForm(newFormName, newFormEmail, newFormWeb3Key);
+        setIsSubmitting(false);
+        if (success) { setShowNewModal(false); setNewFormName(''); setNewFormEmail(user.email); setNewFormWeb3Key(''); }
+      };
+
+      const totalSubs = submissions.length;
+      const recentSubs = submissions.filter(s => (Date.now() - s.createdAt) < 7 * 24 * 60 * 60 * 1000).length;
+
+      return (
+        <div className="container">
+          <div className="stats-grid">
+            <div className="stat-card"><div className="stat-icon red"><IconCode /></div><div><div className="text-muted">Total Forms</div><div className="stat-value">{forms.length}</div></div></div>
+            <div className="stat-card"><div className="stat-icon blue"><IconInbox /></div><div><div className="text-muted">Total Submissions</div><div className="stat-value">{totalSubs}</div></div></div>
+            <div className="stat-card"><div className="stat-icon green"><IconBarChart /></div><div><div className="text-muted">Last 7 Days</div><div className="stat-value">{recentSubs}</div></div></div>
+          </div>
+
+          <div className="flex-between mb-6" style={{flexDirection: 'row'}}>
+            <h1 className="title-h1" style={{ margin: 0 }}>Forms</h1>
+            <button onClick={() => setShowNewModal(true)} className="btn btn-primary"><IconPlus /> New form</button>
+          </div>
+
+          {forms.length === 0 ? (
+            <div className="card card-body flex-center" style={{ flexDirection: 'column', padding: '60px 20px', textAlign: 'center' }}>
+              <div className="stat-icon" style={{ background: 'var(--bg-color)', width: '64px', height: '64px', marginBottom: '16px', fontSize: '32px', color: 'var(--text-light)' }}><IconFileText /></div>
+              <h3 className="title-h2">No forms created yet</h3>
+              <p className="text-muted mb-6">Create your first form to generate an endpoint.</p>
+              <button onClick={() => setShowNewModal(true)} className="btn btn-dark"><IconPlus /> Create form</button>
+            </div>
+          ) : (
+            <div className="card table-responsive">
+              <table className="table">
+                <thead><tr><th>Name</th><th>Target</th><th style={{ textAlign: 'right' }}>Submissions</th></tr></thead>
+                <tbody>
+                  {forms.map(form => {
+                    const subCount = submissions.filter(s => s.formId === form.id).length;
+                    return (
+                      <tr key={form.id} onClick={() => onSelectForm(form)}>
+                        <td><div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{form.name}</div><div style={{ fontSize: '12px', color: 'var(--text-light)', fontFamily: 'monospace' }}>{form.id}</div></td>
+                        <td><div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)' }}><IconMail /> {form.targetEmail}</div>{form.web3formsKey ? <span className="badge badge-green" style={{ marginTop: '6px' }}>Email Live</span> : <span className="badge badge-yellow" style={{ marginTop: '6px' }}>Db Only</span>}</td>
+                        <td style={{ textAlign: 'right' }}><span className="badge badge-gray">{subCount}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {showNewModal && (
+            <div className="modal-overlay">
+              <div className="modal-content">
+                <div className="modal-header"><h3 className="title-h2" style={{ margin: 0 }}>New Project</h3><button type="button" onClick={() => setShowNewModal(false)} className="modal-close">&times;</button></div>
+                <form onSubmit={handleCreate}>
+                  <div className="modal-body">
+                    <div className="form-group"><label className="form-label">Project Name</label><input type="text" required value={newFormName} onChange={(e) => setNewFormName(e.target.value)} placeholder="e.g., Contact Page" className="form-input" /></div>
+                    <div className="form-group"><label className="form-label">Notification Email</label><input type="email" required value={newFormEmail} onChange={(e) => setNewFormEmail(e.target.value)} placeholder="your@email.com" className="form-input" /></div>
+                    <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>Web3Forms Key <span style={{ color: 'var(--text-light)', fontWeight: 'normal', textTransform: 'none' }}>(Optional)</span></label><input type="text" value={newFormWeb3Key} onChange={(e) => setNewFormWeb3Key(e.target.value)} placeholder="Enter API key" className="form-input" style={{ fontFamily: 'monospace' }} /></div>
+                  </div>
+                  <div className="modal-footer"><button type="button" onClick={() => setShowNewModal(false)} className="btn btn-outline">Cancel</button><button type="submit" disabled={isSubmitting} className="btn btn-primary">{isSubmitting ? 'Creating...' : 'Create Form'}</button></div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function FormDetailView({ form, submissions, onBack, onDelete, onUpdate, onMockSubmit }) {
+      const [activeTab, setActiveTab] = useState('submissions'); 
+
+      return (
+        <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
+          <div style={{ background: 'white' }}>
+            <div style={{ width: '100%', maxWidth: '1100px', margin: '0 auto', padding: '24px 16px 0' }}>
+              <button onClick={onBack} className="nav-link" style={{ marginBottom: '16px' }}><IconArrowLeft /> Forms</button>
+              <div style={{ marginBottom: '24px' }}>
+                <h1 className="title-h1">{form.name}</h1>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px' }}>
+                  <span style={{ fontFamily: 'monospace', background: 'var(--bg-color)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', wordBreak: 'break-all' }}>ID: {form.id}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px', wordBreak: 'break-all' }}><IconMail /> {form.targetEmail}</span>
+                </div>
+              </div>
+            </div>
+            <div className="tabs-wrapper">
+              <div className="tabs-container">
+                <button onClick={() => setActiveTab('submissions')} className={`tab ${activeTab === 'submissions' ? 'active' : ''}`}>Inbox <span className="badge badge-gray" style={{marginLeft: '4px'}}>{submissions.length}</span></button>
+                <button onClick={() => setActiveTab('integration')} className={`tab ${activeTab === 'integration' ? 'active' : ''}`}>Integration</button>
+                <button onClick={() => setActiveTab('settings')} className={`tab ${activeTab === 'settings' ? 'active' : ''}`}>Settings</button>
+              </div>
+            </div>
+          </div>
+          <div className="container">
+            {activeTab === 'submissions' && <SubmissionsTab submissions={submissions} />}
+            {activeTab === 'integration' && <IntegrationTab form={form} onMockSubmit={onMockSubmit} />}
+            {activeTab === 'settings' && <SettingsTab form={form} onDelete={onDelete} onUpdate={onUpdate} />}
+          </div>
+        </div>
+      );
+    }
+
+    function SubmissionsTab({ submissions }) {
+      if (submissions.length === 0) {
+        return (
+          <div className="card card-body flex-center" style={{ flexDirection: 'column', padding: '80px 20px', textAlign: 'center' }}>
+            <div style={{ fontSize: '48px', color: 'var(--border-color)', marginBottom: '16px' }}><IconInbox /></div>
+            <h3 className="title-h2">Awaiting Submissions</h3>
+            <p className="text-muted">Your inbox is empty. Once you receive data, it will appear here.</p>
+          </div>
+        );
+      }
+
+      return (
+        <div className="card table-responsive">
+          <table className="table">
+            <thead><tr><th style={{ width: '160px' }}>Date</th><th>Submission Data</th></tr></thead>
+            <tbody>
+              {submissions.map((sub) => (
+                <tr key={sub.id} style={{ verticalAlign: 'top' }}>
+                  <td style={{ color: 'var(--text-muted)' }}>{new Date(sub.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}</td>
+                  <td>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {Object.entries(sub.data).map(([key, value]) => (
+                        <div key={key} style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
+                          <span style={{ fontWeight: '600', color: 'var(--text-muted)', textTransform: 'capitalize', minWidth: '100px' }}>{key.replace(/_/g, ' ')}:</span>
+                          <span style={{ color: 'var(--text-main)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1, minWidth: '150px' }}>{String(value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    function IntegrationTab({ form, onMockSubmit }) {
+      const [copiedHTML, setCopiedHTML] = useState(false);
+      const [testEmail, setTestEmail] = useState('');
+      const [testMessage, setTestMessage] = useState('');
+      const [isSubmitting, setIsSubmitting] = useState(false);
+
+      const web3Key = form.web3formsKey || "YOUR_KEY_HERE";
+      const htmlSnippet = `<!-- HTML Form Snippet -->
+<form action="https://api.web3forms.com/submit" method="POST">
+  <input type="hidden" name="access_key" value="${web3Key}">
+  <label>Your Email:</label>
+  <input type="email" name="email" required>
+  <label>Message:</label>
+  <textarea name="message" required></textarea>
+  <button type="submit">Send</button>
+</form>`;
+
+      const copyCode = () => {
+        const el = document.createElement('textarea'); el.value = htmlSnippet;
+        document.body.appendChild(el); el.select();
+        try { document.execCommand('copy'); setCopiedHTML(true); setTimeout(() => setCopiedHTML(false), 2000); } catch (e) {}
+        document.body.removeChild(el);
+      };
+
+      const handleTestSubmit = async (e) => {
+        e.preventDefault(); setIsSubmitting(true);
+        try {
+          await onMockSubmit({ email: testEmail, message: testMessage, source: "Simulator" });
+          setTestEmail(''); setTestMessage(''); alert("Success! Check Submissions tab.");
+        } catch(err) { alert("Test failed. " + err.message); } finally { setIsSubmitting(false); }
+      };
+
+      return (
+        <div className="integration-grid">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div className="card">
+              <div className="card-header flex-between" style={{flexDirection: 'row', padding: '16px'}}>
+                <h3 className="title-h2" style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><IconCode /> HTML Snippet</h3>
+                <button onClick={copyCode} style={{ background: 'none', border: 'none', color: 'var(--primary-red)', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>{copiedHTML ? 'COPIED!' : 'COPY'}</button>
+              </div>
+              <div className="code-block"><div className="code-block-body">{htmlSnippet}</div></div>
+              <div style={{ padding: '16px', background: '#fbfbfb', fontSize: '12px', color: 'var(--text-muted)' }}><strong>Note:</strong> Paste this into your website to enable direct emails.</div>
+            </div>
+          </div>
+          <div>
+            <div className="card card-body">
+              <div className="flex-between mb-6" style={{flexDirection: 'row'}}>
+                <h2 className="title-h2" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{color: 'var(--primary-red)'}}><IconTerminal /></span> Simulator</h2>
+                <span className="badge badge-green">Live</span>
+              </div>
+              <p className="text-muted mb-6">Test your form. Submitting here writes to Firebase and fires an email.</p>
+              <form onSubmit={handleTestSubmit} style={{ background: '#fbfbfb', padding: '20px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                <div className="form-group">
+                  <label className="form-label">User Email</label>
+                  <input type="email" required value={testEmail} onChange={e => setTestEmail(e.target.value)} className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Message</label>
+                  <textarea required value={testMessage} onChange={e => setTestMessage(e.target.value)} className="form-textarea"></textarea>
+                </div>
+                <button type="submit" disabled={isSubmitting} className="btn btn-dark" style={{ width: '100%', padding: '14px' }}>{isSubmitting ? 'Sending...' : 'Send Test Submission'}</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function SettingsTab({ form, onDelete, onUpdate }) {
+      const [name, setName] = useState(form.name);
+      const [email, setEmail] = useState(form.targetEmail);
+      const [web3key, setWeb3Key] = useState(form.web3formsKey || '');
+      const [isSaving, setIsSaving] = useState(false);
+
+      const handleSave = async (e) => {
+        e.preventDefault(); setIsSaving(true);
+        await onUpdate({ name, targetEmail: email, web3formsKey: web3key });
+        setIsSaving(false); alert('Settings saved securely.');
+      };
+
+      return (
+        <div style={{ width: '100%', maxWidth: '600px' }}>
+          <div className="card mb-6">
+            <div className="card-header"><h2 className="title-h2" style={{ margin: 0, fontSize: '18px' }}>Project Settings</h2></div>
+            <form onSubmit={handleSave} className="card-body">
+              <div className="form-group">
+                <label className="form-label">Project Name</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} required className="form-input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Notification Email</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="form-input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Web3Forms API Key</label>
+                <input type="text" value={web3key} onChange={e => setWeb3Key(e.target.value)} placeholder="e.g. 4a5c1f1c-7500-..." className="form-input" style={{ fontFamily: 'monospace' }} />
+              </div>
+              <button type="submit" disabled={isSaving} className="btn btn-primary" style={{ width: '100%' }}>{isSaving ? 'Saving...' : 'Save Changes'}</button>
+            </form>
+          </div>
+          <div className="card card-body flex-between" style={{ border: '1px solid #ffcccc', flexDirection: 'column', alignItems: 'stretch' }}>
+            <div>
+              <h2 className="title-h2" style={{ color: '#d32f2f', margin: 0, fontSize: '18px' }}>Delete Project</h2>
+              <p className="text-muted" style={{ marginTop: '4px' }}>Permanently wipe all stored submissions.</p>
+            </div>
+            <button type="button" onClick={() => { if (window.confirm('Delete form and all data?')) onDelete(); }} className="btn btn-danger" style={{ width: '100%' }}><IconTrash /> Delete Form</button>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
