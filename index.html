@@ -158,6 +158,7 @@
       .tabs { padding: 0 16px; margin-left: -16px; margin-right: -16px; width: 100vw; max-width: 100vw; }
       .tabs .tab:first-child { margin-left: 16px; }
       .tabs .tab:last-child { margin-right: 16px; }
+      .landing-nav { padding: 16px; }
       .modal-footer { flex-direction: column; }
       .modal-footer .btn { width: 100%; margin-left: 0; }
     }
@@ -507,6 +508,10 @@
               document.getElementById('settings-web3-box').style.display = f.web3Key ? 'block' : 'none';
               document.getElementById('settings-web3-key').value = f.web3Key || '';
               updateFormSDKUI(f); 
+            } else {
+              // Form was deleted, clear UI
+              activeFormId = null;
+              openWorkspaceView('ws-project');
             }
           }
         });
@@ -589,6 +594,7 @@
         grid.innerHTML = '<div class="bento-card" style="grid-column:1/-1;text-align:center;padding:60px 20px;"><p class="text-muted">No projects yet. Create one to begin.</p></div>';
         return;
       }
+      // Pass the ID as a string properly
       grid.innerHTML = projectsData.map(p => `
         <div class="bento-card clickable" onclick="selectProject('${p.id}')">
           <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
@@ -616,7 +622,7 @@
         <tr class="clickable-row" onclick="selectForm('${f.id}')">
           <td><div style="font-weight:700;font-size:15px;margin-bottom:4px;">${escapeHTML(f.name)}</div><div class="text-muted" style="font-family:monospace;font-size:12px;">ID: ${f.id}</div></td>
           <td><span class="badge" style="background:var(--primary-light);color:var(--primary);border-color:var(--danger-border);">Unified CRM</span></td>
-          <td>${new Date(f.createdAt).toLocaleDateString()}</td>
+          <td>${new Date(f.createdAt || Date.now()).toLocaleDateString()}</td>
         </tr>
       `).join('');
     }
@@ -736,6 +742,16 @@ window.FlowFormTracker.init();
       document.getElementById('ui-sdk-code').textContent = snippet;
     }
 
+    function selectForm(fid) {
+      activeFormId = fid;
+      const f = formsData.find(x => x.id === fid);
+      if (f) {
+        updateFormSDKUI(f);
+        openWorkspaceView('ws-form');
+        listenToSubmissions();
+      }
+    }
+
     function toggleSort() {
       sortNewest = !sortNewest;
       document.getElementById('btn-sort').innerHTML = sortNewest ? '⏱️ Sort: Newest First' : '⏱️ Sort: Oldest First';
@@ -780,7 +796,7 @@ window.FlowFormTracker.init();
         if (!sessions[sid]) {
            sessions[sid] = { sessionId: sid, createdAt: 0, fields: {}, hasMedia: false, hasForm: false };
         }
-        // Take highest timestamp
+        // Take highest timestamp (fallback to 0 if undefined)
         sessions[sid].createdAt = Math.max(sessions[sid].createdAt, Number(sub.createdAt || 0));
         
         // Merge flat fields. This overrides page views with actual form data.
@@ -908,6 +924,9 @@ window.FlowFormTracker.init();
 
         const timeStr = session.createdAt > 0 ? new Date(session.createdAt).toLocaleString() : 'Unknown Date';
 
+        // Add defensive check for sessionId before substring
+        const sidDisplay = session.sessionId ? session.sessionId.substring(0,8) : 'Unknown';
+
         return `
           <div class="data-card">
             <div class="data-header">
@@ -920,7 +939,7 @@ window.FlowFormTracker.init();
                   <div class="data-timestamp">${timeStr}</div>
                   <button class="btn-icon" style="color:var(--danger); padding:4px;" onclick="deleteSession('${session.sessionId}')" title="Delete User Profile">🗑️</button>
                 </div>
-                <div style="font-size:11px; color:var(--text-muted); background:var(--bg-alt); padding:4px 8px; border-radius:8px; border:1px solid var(--border-color); font-family:monospace;">ID: ${session.sessionId.substring(0,8)}...</div>
+                <div style="font-size:11px; color:var(--text-muted); background:var(--bg-alt); padding:4px 8px; border-radius:8px; border:1px solid var(--border-color); font-family:monospace;">ID: ${sidDisplay}...</div>
               </div>
             </div>
             <div class="data-body">${fieldsHTML}</div>
