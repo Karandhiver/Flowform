@@ -74,7 +74,7 @@
     /* Main Area */
     .main-area { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; background: var(--bg-main); width: 100%; max-width: 100vw; -webkit-overflow-scrolling: touch;}
     
-    /* Header Alignment Class */
+    /* Header Alignment Fix */
     .header-align { max-width: 1400px; margin: 0 auto; width: 100%; padding: 0 40px; box-sizing: border-box; }
     .top-header { background: var(--bg-alt); padding-top: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 30; }
     .top-header-flex { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
@@ -106,6 +106,15 @@
     .table tr.clickable-row:hover td { background: var(--bg-main); cursor: pointer; }
     .badge { display: inline-flex; align-items: center; padding: 4px 10px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; white-space: nowrap;}
 
+    /* CRM Layout */
+    .crm-layout { display: flex; gap: 24px; align-items: flex-start; width: 100%; flex-wrap: wrap; }
+    .crm-folders { width: 220px; flex-shrink: 0; background: var(--bg-alt); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 4px;}
+    .crm-main { flex-grow: 1; min-width: 300px; }
+    
+    .folder-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-size: 14px; font-weight: 600; transition: 0.2s; }
+    .folder-item:hover { background: var(--bg-main); color: var(--text-main); }
+    .folder-item.active { background: var(--primary-light); color: var(--primary); }
+    
     /* Smart Inbox Cards & Bulk Actions */
     .filter-bar { display: flex; gap: 12px; flex-wrap: wrap; background: var(--bg-alt); padding: 16px; border-radius: 16px; border: 1px solid var(--border-color); align-items: center; width: 100%; }
     .filter-search { flex: 1 1 200px; display: flex; align-items: center; gap: 8px; background: var(--bg-main); padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border-color); }
@@ -116,7 +125,7 @@
     
     .bulk-actions-bar { display: none; align-items: center; gap: 12px; padding: 12px 16px; background: var(--primary-light); border-radius: 12px; border: 1px solid var(--primary); margin-top: 16px; animation: slideUp 0.2s ease; flex-wrap: wrap;}
     
-    .data-card { background: var(--bg-alt); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 16px; width: 100%; overflow: hidden; position: relative;}
+    .data-card { background: var(--bg-alt); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 16px; width: 100%; overflow: hidden; position: relative; transition: border-color 0.2s;}
     .data-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px dashed var(--border-color); padding-bottom: 16px; flex-wrap: wrap; gap: 12px;}
     .data-important-title { font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom: 4px; word-break: break-word;}
     .data-important-subtitle { font-size: 14px; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 6px; word-break: break-word;}
@@ -137,6 +146,15 @@
     .tab-content { display: none; animation: fadeIn 0.3s ease; width: 100%; }
     .tab-content.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Analytics Charts */
+    .chart-container { height: 240px; display: flex; align-items: flex-end; gap: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 24px; width: 100%; overflow-x: auto;}
+    .chart-bar-wrap { flex: 1; min-width: 40px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 8px; height: 100%; }
+    .chart-bar { width: 100%; background: var(--primary-light); border-radius: 6px 6px 0 0; position: relative; transition: 0.5s ease-out; cursor: pointer; }
+    .chart-bar:hover { background: var(--primary); }
+    .chart-label { font-size: 12px; color: var(--text-muted); font-weight: 600; white-space: nowrap;}
+    .device-list { display: flex; flex-direction: column; gap: 12px; margin-top: 24px;}
+    .device-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-main); border-radius: 8px; border: 1px solid var(--border-color); font-size: 14px;}
 
     /* Modals & Custom Dialog UI */
     .modal-overlay { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.6); display: none; align-items: center; justify-content: center; z-index: 100; padding: 16px; backdrop-filter: blur(4px); }
@@ -162,6 +180,7 @@
       .top-header-flex { flex-direction: column; align-items: flex-start; }
       .top-header-flex .btn { width: 100%; }
       .workspace { padding: 16px 16px 100px 16px; gap: 16px; width: 100%; box-sizing: border-box;}
+      .crm-folders { width: 100%; }
       .bento-grid, .stats-grid, .data-body { grid-template-columns: 1fr; }
       .data-header { flex-direction: column; gap: 8px; }
       .data-timestamp { align-self: flex-start; }
@@ -182,7 +201,7 @@
   <div id="view-landing" class="view active" style="background: var(--bg-alt);">
     <div style="padding: 24px 40px; display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; width: 100%;">
       <div style="font-weight: 900; font-size: 22px; display: flex; align-items: center; gap: 8px; color: var(--primary);">
-        FlowForm Pro
+        FlowForm CRM
       </div>
       <button class="btn btn-white" onclick="switchRootView('view-login')">Console Login</button>
     </div>
@@ -203,13 +222,13 @@
         </div>
         <div class="bento-card">
           <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg></div>
-          <h3 class="title-h2">SaaS Data Isolation</h3>
-          <p class="text-muted">Built for scale. Every user's data is strictly partitioned in our backend. No cross-contamination, absolute privacy.</p>
+          <h3 class="title-h2">Advanced Analytics</h3>
+          <p class="text-muted">Real-time tracking translates into beautiful CRM charts, showing you daily volume, unique user sessions, and exact device breakdowns.</p>
         </div>
         <div class="bento-card">
           <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></div>
-          <h3 class="title-h2">Massive Media Support</h3>
-          <p class="text-muted">Accept large video and 10-minute audio uploads directly via Firebase Cloud Storage, linked natively to your data cards.</p>
+          <h3 class="title-h2">Smart Folders</h3>
+          <p class="text-muted">Organize incoming payloads directly in your CRM via custom folders, perfectly tracking your active leads, archives, or support tickets.</p>
         </div>
       </div>
     </div>
@@ -334,52 +353,64 @@
 
         <div class="workspace">
           
-          <!-- TAB 1: INBOX CRM -->
+          <!-- TAB 1: INBOX CRM & FOLDERS -->
           <div id="tab-inbox" class="tab-content active">
-            <div class="filter-bar">
-              <div class="filter-search">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input type="text" id="search-input" placeholder="Search payloads..." oninput="renderSubmissions()">
-              </div>
-              <button class="btn btn-white" onclick="toggleSort()" id="btn-sort" style="width:auto; padding:8px 12px; font-size:12px;">⏱️ Sort: Newest First</button>
-              <div class="date-range">
-                <span style="color:var(--text-muted); font-weight:600; font-size:12px;">Date:</span>
-                <input type="date" id="filter-start-date" onchange="renderSubmissions()" />
-                <span style="color:var(--text-muted)">to</span>
-                <input type="date" id="filter-end-date" onchange="renderSubmissions()" />
-              </div>
-              <select class="filter-select" id="filter-folder" onchange="renderSubmissions()">
-                <option value="all">All Folders</option>
-              </select>
-              <select class="filter-select" id="filter-type" onchange="renderSubmissions()">
-                <option value="all">All Data Types</option>
-                <option value="media">Has Media Attached</option>
-              </select>
-            </div>
-            
-            <!-- Bulk Actions Bar -->
-            <div id="bulk-actions-wrapper" class="bulk-actions-bar">
-               <div style="display:flex; align-items:center; gap:8px;">
-                 <span style="font-size: 13px; font-weight: 800; color: var(--primary);"><span id="selected-count">0</span> Selected</span>
-               </div>
-               <div style="display:flex; gap:12px; margin-left:auto; flex-wrap:wrap;">
-                 <button class="btn btn-white" style="padding: 6px 12px; font-size: 12px;" onclick="moveSelected()">📁 Move to Folder</button>
-                 <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteSelectedBulk()">🗑️ Delete All</button>
-               </div>
-            </div>
+            <div class="crm-layout">
+              
+              <!-- Smart Folder Sidebar -->
+              <aside class="crm-folders">
+                <h3 class="title-h2" style="font-size: 13px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; padding-left: 12px; letter-spacing: 0.05em;">Folders</h3>
+                <div id="folder-sidebar-list" style="display:flex; flex-direction:column; gap:4px;">
+                   <!-- Rendered via JS -->
+                </div>
+                <button class="btn btn-white" style="margin-top: 16px; font-size: 12px; border-style: dashed;" onclick="createNewFolder()">+ New Folder</button>
+              </aside>
 
-            <!-- Master Select All Checkbox -->
-            <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px dashed var(--border-color); margin-bottom: 16px; margin-top: 16px;">
-               <input type="checkbox" id="cb-select-all" onchange="toggleSelectAll(this.checked)" style="transform: scale(1.2); cursor: pointer;">
-               <label for="cb-select-all" style="margin: 0; font-size: 13px; font-weight: 700; color: var(--text-muted); cursor: pointer;">Select All Visibile Sessions</label>
-            </div>
+              <!-- Main CRM Feed -->
+              <div class="crm-main">
+                <div class="filter-bar">
+                  <div class="filter-search">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="search-input" placeholder="Search payloads..." oninput="renderSubmissions()">
+                  </div>
+                  <button class="btn btn-white" onclick="toggleSort()" id="btn-sort" style="width:auto; padding:8px 12px; font-size:12px;">⏱️ Sort: Newest First</button>
+                  <div class="date-range">
+                    <span style="color:var(--text-muted); font-weight:600; font-size:12px;">Date:</span>
+                    <input type="date" id="filter-start-date" onchange="renderSubmissions()" />
+                    <span style="color:var(--text-muted)">to</span>
+                    <input type="date" id="filter-end-date" onchange="renderSubmissions()" />
+                  </div>
+                  <select class="filter-select" id="filter-type" onchange="renderSubmissions()">
+                    <option value="all">All Data Types</option>
+                    <option value="media">Has Media Attached</option>
+                  </select>
+                </div>
+                
+                <!-- Bulk Actions Bar -->
+                <div id="bulk-actions-wrapper" class="bulk-actions-bar">
+                   <div style="display:flex; align-items:center; gap:8px;">
+                     <span style="font-size: 13px; font-weight: 800; color: var(--primary);"><span id="selected-count">0</span> Selected</span>
+                   </div>
+                   <div style="display:flex; gap:12px; margin-left:auto; flex-wrap:wrap;">
+                     <button class="btn btn-white" style="padding: 6px 12px; font-size: 12px;" onclick="moveSelected()">📁 Move to Folder</button>
+                     <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteSelectedBulk()">🗑️ Delete All</button>
+                   </div>
+                </div>
 
-            <div id="submissions-list">
-              <!-- Rendered via JS -->
+                <!-- Master Select All Checkbox -->
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px dashed var(--border-color); margin-bottom: 16px; margin-top: 16px;">
+                   <input type="checkbox" id="cb-select-all" onchange="toggleSelectAll(this.checked)" style="transform: scale(1.2); cursor: pointer;">
+                   <label for="cb-select-all" style="margin: 0; font-size: 13px; font-weight: 700; color: var(--text-muted); cursor: pointer;">Select All Visible Sessions</label>
+                </div>
+
+                <div id="submissions-list">
+                  <!-- Rendered via JS -->
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- TAB 2: ANALYTICS -->
+          <!-- TAB 2: ANALYTICS ENGINE -->
           <div id="tab-analytics" class="tab-content">
             <div class="stats-grid">
               <div class="stat-card"><div class="stat-header">Unique User Sessions</div><div class="stat-value" id="stat-sessions">0</div></div>
@@ -388,17 +419,18 @@
             </div>
             <div class="bento-grid" style="margin-top: 24px;">
               <div class="bento-card" style="grid-column: 1 / -1;">
-                <h3 class="title-h2">Conversion Activity</h3>
-                <p class="text-muted">A representation of sessions vs filled forms over time.</p>
-                <div class="chart-container">
-                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 20%;"></div><span class="chart-label">Mon</span></div>
-                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 45%;"></div><span class="chart-label">Tue</span></div>
-                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 80%;"></div><span class="chart-label">Wed</span></div>
-                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 60%;"></div><span class="chart-label">Thu</span></div>
-                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 95%; background: var(--primary);"></div><span class="chart-label" style="color:var(--primary);">Fri</span></div>
-                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 30%;"></div><span class="chart-label">Sat</span></div>
-                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 15%;"></div><span class="chart-label">Sun</span></div>
+                <h3 class="title-h2">7-Day Traffic Activity</h3>
+                <p class="text-muted">Total unique interactions logged per day.</p>
+                <div class="chart-container" id="analytics-chart">
+                  <!-- Dynamically rendered via JS -->
                 </div>
+              </div>
+              <div class="bento-card">
+                 <h3 class="title-h2">Device Breakdown</h3>
+                 <p class="text-muted">Most common operating systems.</p>
+                 <div class="device-list" id="analytics-devices">
+                    <!-- Dynamically rendered via JS -->
+                 </div>
               </div>
             </div>
           </div>
@@ -460,7 +492,7 @@
   <div id="modal-new-project" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h3 class="title-h2" style="margin:0;">Create Project</h3><button class="btn-icon" onclick="closeModal('modal-new-project')">&times;</button></div><div class="modal-body"><div class="form-group" style="margin:0;"><label class="label">Project Name</label><input type="text" class="input" placeholder="e.g., Client Website" id="input-new-proj"></div></div><div class="modal-footer"><button class="btn btn-white" onclick="closeModal('modal-new-project')">Cancel</button><button class="btn btn-primary" onclick="handleCreateProject()" id="btn-create-proj">Create Project</button></div></div></div>
   <div id="modal-new-form" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h3 class="title-h2" style="margin:0;">Create Endpoint</h3><button class="btn-icon" onclick="closeModal('modal-new-form')">&times;</button></div><div class="modal-body"><div class="form-group"><label class="label">Endpoint Name</label><input type="text" class="input" placeholder="e.g., Universal Data Ingestion" id="input-new-form-name"></div><div class="form-group"><label class="label">Endpoint Type</label><select class="input" id="input-new-form-type"><option value="tracker">Universal Data CRM Endpoint</option></select></div><label class="toggle-wrapper" style="margin-bottom: 0;" onclick="toggleNewFormEmail(event)"><div style="display:flex; align-items:center; gap:12px;"><div style="font-weight: 700; font-size: 13px;">Enable Email Alerts</div></div><input type="checkbox" class="toggle-checkbox" id="new-form-email-toggle"><div class="toggle-switch"></div></label><div id="new-form-web3-box" style="display:none; background:var(--bg-main); padding:16px; border-radius:12px; border:1px solid var(--border-color); margin-top:16px;"><div style="font-size: 13px; color: var(--text-main); margin-bottom: 12px; line-height: 1.5;">1. Go to <a href="https://web3forms.com" target="_blank" style="color:var(--primary); font-weight:700; text-decoration:none;">Web3Forms.com</a><br/>2. Paste your Free API Key below.</div><input type="text" class="input" placeholder="Paste Access Key..." id="input-new-form-web3" style="font-family: monospace; font-size: 13px;"></div></div><div class="modal-footer"><button class="btn btn-white" onclick="closeModal('modal-new-form')">Cancel</button><button class="btn btn-primary" onclick="handleCreateForm()" id="btn-create-form">Create Endpoint</button></div></div></div>
 
-  <!-- === CUSTOM DIALOG (REPLACES WINDOW ALERTS/PROMPTS) === -->
+  <!-- === CUSTOM DIALOG ENGINE === -->
   <div id="custom-dialog" class="modal-overlay" style="display: none; z-index: 9999;">
     <div class="modal-content" style="max-width: 400px; animation: slideUp 0.2s ease;">
       <div class="modal-body" style="padding: 32px 24px; text-align: center;">
@@ -506,7 +538,6 @@
           this.input.style.display = mode === 'prompt' ? 'block' : 'none';
           this.cancelBtn.style.display = (mode === 'confirm' || mode === 'prompt') ? 'block' : 'none';
           
-          // Icon and button styling based on intent
           if (mode === 'confirm' && title.toLowerCase().includes('delete')) {
             this.icon.innerText = '⚠️';
             this.confirmBtn.style.background = 'var(--danger)';
@@ -533,7 +564,6 @@
       }
     };
     
-    // Bind dialog globally
     Dialog.init();
     window.showAlert = (msg, title) => Dialog.open('alert', msg, title);
     window.showConfirm = (msg, title) => Dialog.open('confirm', msg, title);
@@ -562,7 +592,8 @@
     let formsData = [];
     let submissionsData = [];
     let sortNewest = true;
-    let selectedSessions = []; // Array of selected session IDs for Bulk Actions
+    let selectedSessions = []; 
+    let activeFolder = 'Inbox';
     
     let activeProjectId = null;
     let activeFormId = null;
@@ -598,7 +629,6 @@
 
     function doLogout() { auth.signOut(); }
 
-    // --- FIREBASE LISTENERS ---
     function listenToProjects() {
       if(unsubProjects) unsubProjects();
       unsubProjects = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects')
@@ -621,7 +651,6 @@
           if(activeFormId) {
             const f = formsData.find(x => x.id === activeFormId);
             if(f) {
-              // Ensure settings modal accurately reflects what is in the database
               document.getElementById('settings-email-toggle').checked = !!f.web3Key;
               document.getElementById('settings-web3-box').style.display = f.web3Key ? 'block' : 'none';
               document.getElementById('settings-web3-key').value = f.web3Key || '';
@@ -640,13 +669,11 @@
       unsubSubs = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').doc(activeProjectId).collection('forms').doc(activeFormId).collection('submissions')
         .onSnapshot(snap => {
           submissionsData = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-          // Validate existing selections exist
           selectedSessions = selectedSessions.filter(sid => submissionsData.some(d => d.sessionId === sid || d.id === sid));
           renderSubmissions();
         });
     }
 
-    // --- CRUD OPERATIONS ---
     async function handleCreateProject() {
       const name = document.getElementById('input-new-proj').value;
       if(!name) return;
@@ -665,14 +692,13 @@
       
       document.getElementById('btn-create-form').innerText = "Creating...";
       await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').doc(activeProjectId).collection('forms').add({
-        name, type, web3Key: toggle ? web3Key : '', createdAt: Date.now()
+        name, type, web3Key: toggle ? web3Key : '', folders: ['Inbox'], createdAt: Date.now()
       });
       document.getElementById('btn-create-form').innerText = "Create Endpoint";
       closeModal('modal-new-form');
       document.getElementById('input-new-form-name').value = '';
     }
 
-    // FIXED: Properly saves web3key to database and provides UI feedback
     async function saveFormSettings() {
       const toggle = document.getElementById('settings-email-toggle').checked;
       const web3Key = document.getElementById('settings-web3-key').value;
@@ -688,7 +714,6 @@
         
         btn.innerText = "Saved Successfully!";
         btn.style.background = "#10b981"; 
-        
         await showAlert("Settings saved securely.", "Success");
         
         setTimeout(() => {
@@ -708,7 +733,6 @@
       openWorkspaceView('ws-project');
     }
 
-    // DELETES ALL DOCUMENTS BELONGING TO ONE SESSION ID
     async function deleteSession(sessionId) {
       if(!(await showConfirm("Delete this user session and all associated tracking data?", "Delete User Profile"))) return;
       const docsToDelete = submissionsData.filter(s => s.sessionId === sessionId || s.id === sessionId);
@@ -756,8 +780,14 @@
       if (!folderName) return;
       
       document.getElementById('selected-count').innerText = "...";
-      const docsToUpdate = submissionsData.filter(s => selectedSessions.includes(s.sessionId || s.id));
       
+      const currentForm = formsData.find(x => x.id === activeFormId);
+      const existingFolders = currentForm.folders || ['Inbox'];
+      if (!existingFolders.includes(folderName)) {
+        await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').doc(activeProjectId).collection('forms').doc(activeFormId).update({ folders: [...existingFolders, folderName] });
+      }
+
+      const docsToUpdate = submissionsData.filter(s => selectedSessions.includes(s.sessionId || s.id));
       const promises = docsToUpdate.map(d => 
         db.collection('artifacts').doc(APP_ID)
           .collection('users').doc(currentUser.uid)
@@ -769,8 +799,19 @@
       try {
          await Promise.all(promises);
          selectedSessions = [];
+         activeFolder = folderName;
          updateBulkUI();
       } catch(e) { console.error(e); await showAlert("Failed to move items.", "Error"); }
+    }
+
+    async function createNewFolder() {
+       const folderName = await showPrompt("Name your new folder:", "Leads", "Create Folder");
+       if (!folderName) return;
+       const currentForm = formsData.find(x => x.id === activeFormId);
+       const existingFolders = currentForm.folders || ['Inbox'];
+       if (!existingFolders.includes(folderName)) {
+         await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').doc(activeProjectId).collection('forms').doc(activeFormId).update({ folders: [...existingFolders, folderName] });
+       }
     }
 
     async function deleteSelectedBulk() {
@@ -794,7 +835,6 @@
       } catch(e) { console.error(e); await showAlert("Failed to delete items.", "Error"); }
     }
 
-    // --- RENDERING ---
     function escapeHTML(str) {
       if (str === null || str === undefined) return '';
       return String(str).replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
@@ -817,7 +857,7 @@
     function selectProject(pid) {
       activeProjectId = pid;
       activeFormId = null;
-      selectedSessions = []; // clear selections
+      selectedSessions = []; 
       const p = projectsData.find(x => x.id === pid);
       document.getElementById('ui-proj-title').textContent = p ? p.name : 'Unknown Project';
       openWorkspaceView('ws-project');
@@ -844,8 +884,10 @@
       const bucket = firebaseConfig.storageBucket;
       const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/artifacts/${APP_ID}/users/${currentUser.uid}/projects/${activeProjectId}/forms/${activeFormId}/submissions`;
       
+      const cleanFormName = escapeHTML(f.name).replace(/"/g, '\\"');
+
       const emailScript = f.web3Key ? `
-        const emailPayload = { access_key: "${f.web3Key}", subject: "New Form Submission & Tracking Data", ...formDataObj };
+        const emailPayload = { access_key: "${f.web3Key}", subject: "New Submission: ${cleanFormName}", ...formDataObj };
         emailPayload["--- System Details ---"] = "---";
         if(window.FlowFormTracker.location) emailPayload["User Location"] = "https://maps.google.com/?q=" + window.FlowFormTracker.location.lat + "," + window.FlowFormTracker.location.lng;
         if(window.FlowFormTracker.history.length > 0) emailPayload["Recent Clicks"] = window.FlowFormTracker.history.join(' -> ');
@@ -860,6 +902,20 @@ window.FlowFormTracker = {
   bucket: "${bucket}",
   history: [], location: null,
   
+  _format: function(data) {
+    if (data === null || data === undefined) return { nullValue: null };
+    if (typeof data === 'boolean') return { booleanValue: data };
+    if (typeof data === 'number') return Number.isInteger(data) ? { integerValue: data.toString() } : { doubleValue: data };
+    if (typeof data === 'string') return { stringValue: data };
+    if (Array.isArray(data)) return { arrayValue: { values: data.map(this._format.bind(this)) } };
+    if (typeof data === 'object') {
+      const fields = {};
+      for (const key in data) fields[key] = this._format(data[key]);
+      return { mapValue: { fields } };
+    }
+    return { stringValue: String(data) };
+  },
+
   init: function() {
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('button, a');
@@ -889,14 +945,14 @@ window.FlowFormTracker = {
       if (this.history.length > 0) fields['recent_clicks'] = { stringValue: this.history.join(' > ') };
       
       for (const [k, v] of Object.entries(customData)) {
-        if(Array.isArray(v)) fields[k] = { stringValue: v.join(', ') };
-        else if(typeof v === 'boolean') fields[k] = { booleanValue: v };
-        else fields[k] = { stringValue: String(v) };
+        fields[k] = this._format(v);
       }
       await fetch(this.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields }) });
     } catch(e){}
   },
   
+  track: async function(customData) { return this.sync(customData); },
+
   bindForm: function(formId) {
     const form = document.getElementById(formId);
     if(!form) return;
@@ -954,7 +1010,8 @@ window.FlowFormTracker.init();
 
     function selectForm(fid) {
       activeFormId = fid;
-      selectedSessions = []; // clear selections when switching forms
+      selectedSessions = []; 
+      activeFolder = 'Inbox';
       const f = formsData.find(x => x.id === fid);
       if (f) {
         document.getElementById('settings-email-toggle').checked = !!f.web3Key;
@@ -970,6 +1027,11 @@ window.FlowFormTracker.init();
     function toggleSort() {
       sortNewest = !sortNewest;
       document.getElementById('btn-sort').innerHTML = sortNewest ? '⏱️ Sort: Newest First' : '⏱️ Sort: Oldest First';
+      renderSubmissions();
+    }
+
+    function selectFolder(folder) {
+      activeFolder = folder;
       renderSubmissions();
     }
 
@@ -990,6 +1052,50 @@ window.FlowFormTracker.init();
       return `${browser} on ${os}`;
     }
 
+    // --- REAL-TIME ANALYTICS RENDERER ---
+    function renderAnalytics(sessionsArray) {
+      const chartEl = document.getElementById('analytics-chart');
+      const deviceEl = document.getElementById('analytics-devices');
+      if (!chartEl || !deviceEl) return;
+
+      const last7Days = Array.from({length: 7}, (_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - (6 - i));
+        return { label: d.toLocaleDateString('en-US', {weekday: 'short'}), count: 0, msStr: d.toDateString() };
+      });
+
+      const deviceCounts = {};
+
+      sessionsArray.forEach(s => {
+        const sDateStr = new Date(s.createdAt).toDateString();
+        const dayMatch = last7Days.find(d => d.msStr === sDateStr);
+        if(dayMatch) dayMatch.count++;
+
+        const device = parseUA(s.fields.userAgent);
+        deviceCounts[device] = (deviceCounts[device] || 0) + 1;
+      });
+
+      const maxCount = Math.max(...last7Days.map(d => d.count), 1);
+      chartEl.innerHTML = last7Days.map(d => {
+        const hPct = (d.count / maxCount) * 100;
+        return `<div class="chart-bar-wrap" title="${d.count} sessions">
+                  <div class="chart-bar" style="height: ${hPct || 5}%; opacity: ${d.count===0 ? 0.3 : 1};"></div>
+                  <span class="chart-label">${d.label}</span>
+                </div>`;
+      }).join('');
+
+      const sortedDevices = Object.entries(deviceCounts).sort((a,b) => b[1] - a[1]);
+      if(sortedDevices.length === 0) {
+        deviceEl.innerHTML = `<div class="text-muted" style="text-align:center; padding: 20px;">No device data recorded yet.</div>`;
+      } else {
+        deviceEl.innerHTML = sortedDevices.map(([name, count]) => `
+          <div class="device-item">
+            <span style="font-weight: 600;">${name}</span>
+            <span class="badge" style="background: var(--bg-alt);">${count} Sessions</span>
+          </div>
+        `).join('');
+      }
+    }
+
     // --- UNIFIED CRM GROUPING RENDERER ---
     function renderSubmissions() {
       const container = document.getElementById('submissions-list');
@@ -1006,9 +1112,10 @@ window.FlowFormTracker.init();
       const startDate = startDateVal ? new Date(startDateVal).getTime() : 0;
       const endDate = endDateVal ? new Date(endDateVal).getTime() + 86399999 : Infinity; 
 
-      // 1. Group documents by Session ID
       const sessions = {};
-      const allFolders = new Set(['Inbox']); // Keep track of unique folders
+      const currentForm = formsData.find(x => x.id === activeFormId);
+      const persistentFolders = currentForm && currentForm.folders ? currentForm.folders : ['Inbox'];
+      const allFolders = new Set(persistentFolders); 
 
       submissionsData.forEach(sub => {
         const sid = sub.sessionId || sub.id; 
@@ -1017,7 +1124,6 @@ window.FlowFormTracker.init();
         }
         sessions[sid].createdAt = Math.max(sessions[sid].createdAt, Number(sub.createdAt || 0));
         
-        // If a single document in the session has a folder tag, assign it to the whole session
         if (sub.folder) sessions[sid].folder = sub.folder;
         allFolders.add(sessions[sid].folder);
         
@@ -1033,25 +1139,32 @@ window.FlowFormTracker.init();
 
       const sessionArray = Object.values(sessions);
       
-      // Populate Folder Dropdown
       if (folderFilterEl) {
         folderFilterEl.innerHTML = `<option value="all">All Folders</option>` + 
           Array.from(allFolders).map(f => `<option value="${escapeHTML(f)}">${escapeHTML(f)}</option>`).join('');
-        folderFilterEl.value = folderVal; // Preserve selection
+        folderFilterEl.value = folderVal; 
       }
       
-      // Update Analytics
+      const folderSidebarEl = document.getElementById('folder-sidebar-list');
+      if (folderSidebarEl) {
+        let folderHTML = `<div class="folder-item ${activeFolder === 'all' ? 'active' : ''}" onclick="selectFolder('all')">📁 All Data</div>`;
+        Array.from(allFolders).forEach(f => {
+          folderHTML += `<div class="folder-item ${activeFolder === f ? 'active' : ''}" onclick="selectFolder('${escapeHTML(f)}')">📁 ${escapeHTML(f)}</div>`;
+        });
+        folderSidebarEl.innerHTML = folderHTML;
+      }
+      
       document.getElementById('stat-sessions').textContent = sessionArray.length;
       document.getElementById('stat-forms-filled').textContent = sessionArray.filter(s => s.hasForm).length;
       document.getElementById('stat-locations').textContent = sessionArray.filter(s => s.fields.location_lat).length;
+      renderAnalytics(sessionArray);
 
-      // Filter and Sort unified cards
       const filtered = sessionArray.filter(s => {
         let strData = JSON.stringify(s.fields).toLowerCase();
         const matchesSearch = strData.includes(searchFilter);
         const matchesDate = s.createdAt >= startDate && s.createdAt <= endDate;
         const matchesType = typeVal === 'all' || (typeVal === 'media' && s.hasMedia);
-        const matchesFolder = folderVal === 'all' || s.folder === folderVal;
+        const matchesFolder = activeFolder === 'all' || s.folder === activeFolder;
         
         return matchesSearch && matchesDate && matchesType && matchesFolder;
       });
@@ -1059,7 +1172,7 @@ window.FlowFormTracker.init();
       filtered.sort((a,b) => sortNewest ? b.createdAt - a.createdAt : a.createdAt - b.createdAt);
       
       if (filtered.length === 0) {
-        container.innerHTML = '<div class="bento-card" style="text-align:center; padding:60px 20px;"><p class="text-muted">No records found matching your filters.</p></div>';
+        container.innerHTML = `<div class="bento-card" style="text-align:center; padding:60px 20px;"><p class="text-muted">No records found in <strong>${activeFolder}</strong>.</p></div>`;
         updateBulkUI();
         return;
       }
@@ -1068,12 +1181,10 @@ window.FlowFormTracker.init();
         const payloadObj = session.fields;
         const keys = Object.keys(payloadObj);
         
-        // Smart Title
         const nameKey = keys.find(k => k.toLowerCase().includes('name') && typeof payloadObj[k] === 'string' && payloadObj[k].length < 50);
         const emailKey = keys.find(k => k.toLowerCase().includes('email') && typeof payloadObj[k] === 'string' && payloadObj[k].length < 50);
         const title = nameKey ? escapeHTML(payloadObj[nameKey]) : (emailKey ? escapeHTML(payloadObj[emailKey]) : 'Anonymous User Session');
         
-        // Smart Subtitle
         const parsedDevice = parseUA(payloadObj.userAgent);
         const subtitle = emailKey && nameKey ? escapeHTML(payloadObj[emailKey]) : parsedDevice;
 
@@ -1081,14 +1192,12 @@ window.FlowFormTracker.init();
         let longTextFields = [];
         let mediaFields = [];
 
-        // Catch Location separately
         if (payloadObj.location_lat && payloadObj.location_lng) {
            textFields.push(`<div class="data-field"><div class="data-field-label">Location (GPS)</div><div class="data-field-value"><a href="https://maps.google.com/?q=${payloadObj.location_lat},${payloadObj.location_lng}" target="_blank" style="color:var(--primary); text-decoration:none; font-weight:bold;">📍 View on Maps</a></div></div>`);
            delete payloadObj.location_lat;
            delete payloadObj.location_lng;
         }
 
-        // Structure the data
         for(const [k,v] of Object.entries(payloadObj)) {
           if(k===nameKey || k===emailKey || k==='userAgent' || k==='_event' || k==='_url') continue;
           
@@ -1157,7 +1266,6 @@ window.FlowFormTracker.init();
         const sidDisplay = session.sessionId ? session.sessionId.substring(0,8) : 'Unknown';
         
         const isChecked = selectedSessions.includes(session.sessionId);
-        const folderBadge = session.folder && session.folder !== 'Inbox' ? `<span class="badge" style="background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe;">📁 ${escapeHTML(session.folder)}</span>` : '';
 
         return `
           <div class="data-card" style="${isChecked ? 'border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary);' : ''}">
@@ -1175,7 +1283,6 @@ window.FlowFormTracker.init();
                   <button class="btn-icon" style="color:var(--danger); padding:4px;" onclick="deleteSession('${session.sessionId}')" title="Delete User Profile">🗑️</button>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
-                  ${folderBadge}
                   <div style="font-size:11px; color:var(--text-muted); background:var(--bg-alt); padding:4px 8px; border-radius:8px; border:1px solid var(--border-color); font-family:monospace;">ID: ${sidDisplay}...</div>
                 </div>
               </div>
