@@ -486,7 +486,7 @@
       if(unsubProjects) unsubProjects();
       unsubProjects = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects')
         .onSnapshot(snap => {
-          projectsData = snap.docs.map(doc => ({id: doc.id, ...doc.data()})).sort((a,b) => b.createdAt - a.createdAt);
+          projectsData = snap.docs.map(doc => ({id: doc.id, ...doc.data()})).sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
           document.getElementById('stat-proj-count').textContent = projectsData.length;
           renderProjects();
         });
@@ -497,7 +497,7 @@
       if(unsubForms) unsubForms();
       unsubForms = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').doc(activeProjectId).collection('forms')
         .onSnapshot(snap => {
-          formsData = snap.docs.map(doc => ({id: doc.id, ...doc.data()})).sort((a,b) => b.createdAt - a.createdAt);
+          formsData = snap.docs.map(doc => ({id: doc.id, ...doc.data()})).sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
           document.getElementById('stat-form-count').textContent = formsData.length;
           renderForms();
           if(activeFormId) {
@@ -563,6 +563,7 @@
     async function deleteActiveForm() {
       if(!window.confirm("Permanently delete this endpoint and all records?")) return;
       await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').doc(activeProjectId).collection('forms').doc(activeFormId).delete();
+      activeFormId = null;
       openWorkspaceView('ws-project');
     }
 
@@ -589,17 +590,18 @@
         return;
       }
       grid.innerHTML = projectsData.map(p => `
-        <div class="bento-card clickable" onclick="selectProject('${p.id}', '${escapeHTML(p.name)}')">
+        <div class="bento-card clickable" onclick="selectProject('${p.id}')">
           <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
           <div><h3 class="title-h2" style="margin-bottom:4px;">${escapeHTML(p.name)}</h3><p class="text-muted" style="font-family:monospace;font-size:12px;">ID: ${p.id}</p></div>
         </div>
       `).join('');
     }
 
-    function selectProject(pid, pname) {
+    function selectProject(pid) {
       activeProjectId = pid;
       activeFormId = null;
-      document.getElementById('ui-proj-title').textContent = pname;
+      const p = projectsData.find(x => x.id === pid);
+      document.getElementById('ui-proj-title').textContent = p ? p.name : 'Unknown Project';
       openWorkspaceView('ws-project');
       listenToForms();
     }
