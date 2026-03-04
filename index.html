@@ -70,13 +70,17 @@
     .app-layout.active { display: flex; }
 
     /* Sidebar */
-    .sidebar { width: 280px; background: var(--bg-alt); display: flex; flex-direction: column; z-index: 40; padding: 24px; gap: 32px; border-right: 1px solid var(--border-color); flex-shrink: 0; }
+    .sidebar { width: 280px; background: var(--bg-alt); display: flex; flex-direction: column; z-index: 40; padding: 24px; gap: 32px; border-right: 1px solid var(--border-color); flex-shrink: 0; overflow-y: auto;}
     .brand { font-size: 20px; font-weight: 900; display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--primary); letter-spacing: -0.03em;}
     .nav-list { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
     .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; }
     .nav-item:hover { color: var(--primary); background: var(--primary-light); }
     .nav-item.active { background: var(--primary-light); color: var(--primary); }
     
+    .folder-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-size: 14px; font-weight: 600; transition: 0.2s; }
+    .folder-item:hover { background: var(--bg-main); color: var(--text-main); }
+    .folder-item.active { background: var(--primary-light); color: var(--primary); }
+
     /* Main Area */
     .main-area { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; background: var(--bg-main); width: 100%; max-width: 100vw; -webkit-overflow-scrolling: touch;}
     
@@ -112,15 +116,6 @@
     .table tr.clickable-row:hover td { background: var(--bg-main); cursor: pointer; }
     .badge { display: inline-flex; align-items: center; padding: 4px 10px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; white-space: nowrap;}
 
-    /* CRM Layout */
-    .crm-layout { display: flex; gap: 24px; align-items: flex-start; width: 100%; flex-wrap: wrap; }
-    .crm-folders { width: 220px; flex-shrink: 0; background: var(--bg-alt); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 4px;}
-    .crm-main { flex-grow: 1; min-width: 300px; }
-    
-    .folder-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-size: 14px; font-weight: 600; transition: 0.2s; }
-    .folder-item:hover { background: var(--bg-main); color: var(--text-main); }
-    .folder-item.active { background: var(--primary-light); color: var(--primary); }
-    
     /* Smart Inbox Cards & Bulk Actions */
     .filter-bar { display: flex; gap: 12px; flex-wrap: wrap; background: var(--bg-alt); padding: 16px; border-radius: 16px; border: 1px solid var(--border-color); align-items: center; width: 100%; }
     .filter-search { flex: 1 1 200px; display: flex; align-items: center; gap: 8px; background: var(--bg-main); padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border-color); }
@@ -186,7 +181,6 @@
       .top-header-flex { flex-direction: column; align-items: flex-start; }
       .top-header-flex .btn { width: 100%; }
       .workspace { padding: 16px 16px 100px 16px; gap: 16px; width: 100%; box-sizing: border-box;}
-      .crm-folders { width: 100%; }
       .bento-grid, .stats-grid, .data-body { grid-template-columns: 1fr; }
       .data-header { flex-direction: column; gap: 8px; }
       .data-timestamp { align-self: flex-start; }
@@ -268,6 +262,16 @@
         <div class="nav-item active" onclick="openWorkspaceView('ws-dashboard')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg> Workspace
         </div>
+        
+        <!-- Folders inject here dynamically when inside a form view -->
+        <div id="global-folder-nav" style="display: none; flex-direction: column; gap: 4px; margin-top: 24px;">
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 8px; padding-left: 12px;">Folders</div>
+          <div id="folder-sidebar-list" style="display:flex; flex-direction:column; gap:4px;">
+             <!-- Rendered via JS -->
+          </div>
+          <button class="btn btn-white" style="margin-top: 8px; font-size: 12px; border-style: dashed; padding: 8px; justify-content: flex-start; color: var(--text-muted);" onclick="createNewFolder()">+ New Folder</button>
+        </div>
+
       </nav>
       <div style="margin-top: auto;">
         <div style="background:var(--bg-main); padding:16px; border-radius:12px; border: 1px solid var(--border-color); margin-bottom:12px;">
@@ -361,58 +365,50 @@
           
           <!-- TAB 1: INBOX CRM & FOLDERS -->
           <div id="tab-inbox" class="tab-content active">
-            <div class="crm-layout">
-              
-              <!-- Smart Folder Sidebar -->
-              <aside class="crm-folders">
-                <h3 class="title-h2" style="font-size: 13px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; padding-left: 12px; letter-spacing: 0.05em;">Folders</h3>
-                <div id="folder-sidebar-list" style="display:flex; flex-direction:column; gap:4px;">
-                   <!-- Rendered via JS -->
-                </div>
-                <button class="btn btn-white" style="margin-top: 16px; font-size: 12px; border-style: dashed;" onclick="createNewFolder()">+ New Folder</button>
-              </aside>
-
-              <!-- Main CRM Feed -->
-              <div class="crm-main">
-                <div class="filter-bar">
-                  <div class="filter-search">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="search-input" placeholder="Search payloads..." oninput="renderSubmissions()">
-                  </div>
-                  <button class="btn btn-white" onclick="toggleSort()" id="btn-sort" style="width:auto; padding:8px 12px; font-size:12px;">⏱️ Sort: Newest First</button>
-                  <div class="date-range">
-                    <span style="color:var(--text-muted); font-weight:600; font-size:12px;">Date:</span>
-                    <input type="date" id="filter-start-date" onchange="renderSubmissions()" />
-                    <span style="color:var(--text-muted)">to</span>
-                    <input type="date" id="filter-end-date" onchange="renderSubmissions()" />
-                  </div>
-                  <select class="filter-select" id="filter-type" onchange="renderSubmissions()">
-                    <option value="all">All Data Types</option>
-                    <option value="media">Has Media Attached</option>
-                  </select>
-                </div>
-                
-                <!-- Bulk Actions Bar -->
-                <div id="bulk-actions-wrapper" class="bulk-actions-bar">
-                   <div style="display:flex; align-items:center; gap:8px;">
-                     <span style="font-size: 13px; font-weight: 800; color: var(--primary);"><span id="selected-count">0</span> Selected</span>
-                   </div>
-                   <div style="display:flex; gap:12px; margin-left:auto; flex-wrap:wrap;">
-                     <button class="btn btn-white" style="padding: 6px 12px; font-size: 12px;" onclick="moveSelected()">📁 Move to Folder</button>
-                     <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteSelectedBulk()">🗑️ Delete All</button>
-                   </div>
-                </div>
-
-                <!-- Master Select All Checkbox -->
-                <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px dashed var(--border-color); margin-bottom: 16px; margin-top: 16px;">
-                   <input type="checkbox" id="cb-select-all" onchange="toggleSelectAll(this.checked)" style="transform: scale(1.2); cursor: pointer;">
-                   <label for="cb-select-all" style="margin: 0; font-size: 13px; font-weight: 700; color: var(--text-muted); cursor: pointer;">Select All Visible Sessions</label>
-                </div>
-
-                <div id="submissions-list">
-                  <!-- Rendered via JS -->
-                </div>
+            <div class="filter-bar">
+              <div class="filter-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="search-input" placeholder="Search payloads..." oninput="renderSubmissions()">
               </div>
+              <button class="btn btn-white" onclick="toggleSort()" id="btn-sort" style="width:auto; padding:8px 12px; font-size:12px;">⏱️ Sort: Newest First</button>
+              <div class="date-range">
+                <span style="color:var(--text-muted); font-weight:600; font-size:12px;">Date:</span>
+                <input type="date" id="filter-start-date" onchange="renderSubmissions()" />
+                <span style="color:var(--text-muted)">to</span>
+                <input type="date" id="filter-end-date" onchange="renderSubmissions()" />
+              </div>
+              
+              <!-- Mobile-only folder filter -->
+              <select class="filter-select" id="filter-folder" onchange="renderSubmissions()" style="display:none;">
+                <option value="all">All Folders</option>
+              </select>
+              <button class="btn btn-white" id="mobile-new-folder-btn" onclick="createNewFolder()" style="padding:8px 12px; font-size:12px; display:none;">+ New Folder</button>
+
+              <select class="filter-select" id="filter-type" onchange="renderSubmissions()">
+                <option value="all">All Data Types</option>
+                <option value="media">Has Media Attached</option>
+              </select>
+            </div>
+            
+            <!-- Bulk Actions Bar -->
+            <div id="bulk-actions-wrapper" class="bulk-actions-bar">
+               <div style="display:flex; align-items:center; gap:8px;">
+                 <span style="font-size: 13px; font-weight: 800; color: var(--primary);"><span id="selected-count">0</span> Selected</span>
+               </div>
+               <div style="display:flex; gap:12px; margin-left:auto; flex-wrap:wrap;">
+                 <button class="btn btn-white" style="padding: 6px 12px; font-size: 12px;" onclick="moveSelected()">📁 Move to Folder</button>
+                 <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteSelectedBulk()">🗑️ Delete All</button>
+               </div>
+            </div>
+
+            <!-- Master Select All Checkbox -->
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px; border-bottom: 1px dashed var(--border-color); margin-bottom: 16px; margin-top: 16px;">
+               <input type="checkbox" id="cb-select-all" onchange="toggleSelectAll(this.checked)" style="transform: scale(1.2); cursor: pointer;">
+               <label for="cb-select-all" style="margin: 0; font-size: 13px; font-weight: 700; color: var(--text-muted); cursor: pointer;">Select All Visible Sessions</label>
+            </div>
+
+            <div id="submissions-list">
+              <!-- Rendered via JS -->
             </div>
           </div>
 
@@ -608,6 +604,20 @@
     let unsubForms = null;
     let unsubSubs = null;
 
+    // Fix mobile display for folder filter
+    function checkMobileFolders() {
+        const folderFilterEl = document.getElementById('filter-folder');
+        const mobileNewFolderBtn = document.getElementById('mobile-new-folder-btn');
+        if (window.innerWidth <= 768) {
+            if(folderFilterEl) folderFilterEl.style.display = 'inline-block';
+            if(mobileNewFolderBtn) mobileNewFolderBtn.style.display = 'inline-block';
+        } else {
+            if(folderFilterEl) folderFilterEl.style.display = 'none';
+            if(mobileNewFolderBtn) mobileNewFolderBtn.style.display = 'none';
+        }
+    }
+    window.addEventListener('resize', checkMobileFolders);
+
     // --- AUTH LISTENER ---
     auth.onAuthStateChanged(user => {
       currentUser = user;
@@ -661,6 +671,7 @@
               document.getElementById('settings-web3-box').style.display = f.web3Key ? 'block' : 'none';
               document.getElementById('settings-web3-key').value = f.web3Key || '';
               updateFormSDKUI(f); 
+              renderSubmissions(); // Update folder list if it changed
             } else {
               activeFormId = null;
               openWorkspaceView('ws-project');
@@ -1301,9 +1312,28 @@ window.FlowFormTracker.init();
       updateBulkUI();
     }
 
-    function switchRootView(viewId) { document.querySelectorAll('.view').forEach(el => el.classList.remove('active')); document.getElementById(viewId).classList.add('active'); }
-    function openWorkspaceView(viewId) { document.querySelectorAll('.workspace-view').forEach(el => el.classList.remove('active')); document.getElementById(viewId).classList.add('active'); }
-    function switchFormTab(tabId, btn) { document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active')); document.querySelectorAll('.tab').forEach(e => e.classList.remove('active')); document.getElementById(tabId).classList.add('active'); btn.classList.add('active'); }
+    function switchRootView(viewId) { 
+      document.querySelectorAll('.view').forEach(el => el.classList.remove('active')); 
+      document.getElementById(viewId).classList.add('active'); 
+    }
+
+    function openWorkspaceView(viewId) { 
+      document.querySelectorAll('.workspace-view').forEach(el => el.classList.remove('active')); 
+      document.getElementById(viewId).classList.add('active'); 
+      const folderNav = document.getElementById('global-folder-nav');
+      if (folderNav) {
+        folderNav.style.display = viewId === 'ws-form' ? 'flex' : 'none';
+      }
+    }
+
+    function switchFormTab(tabId, btn) { 
+      document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active')); 
+      document.querySelectorAll('.tab').forEach(e => e.classList.remove('active')); 
+      document.getElementById(tabId).classList.add('active'); 
+      btn.classList.add('active'); 
+      checkMobileFolders(); // Trigger visibility re-check for the mobile top-bar buttons
+    }
+    
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     function toggleNewFormEmail(e) { e.preventDefault(); const cb = document.getElementById('new-form-email-toggle'); cb.checked = !cb.checked; document.getElementById('new-form-web3-box').style.display = cb.checked ? 'block' : 'none'; }
@@ -1320,6 +1350,9 @@ window.FlowFormTracker.init();
       navigator.clipboard.writeText(code); 
       await showAlert("Integration Script Copied!", "Copied"); 
     }
+
+    // Call once on load
+    checkMobileFolders();
 
   </script>
 </body>
