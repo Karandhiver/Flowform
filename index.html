@@ -141,7 +141,7 @@
     .data-field-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
     .data-field-value { font-size: 14px; color: var(--text-main); word-break: break-word; white-space: pre-wrap; line-height: 1.5; overflow-wrap: break-word; }
 
-    /* Tabs */
+    /* Tabs Alignment Fix */
     .tabs { display: flex; gap: 32px; overflow-x: auto; padding-top: 16px; scrollbar-width: none; width: 100%; -webkit-overflow-scrolling: touch;}
     .tabs::-webkit-scrollbar { display: none; }
     .tab { padding: 0 0 12px 0; background: none; border: none; font-size: 14px; font-weight: 700; color: var(--text-muted); cursor: pointer; position: relative; white-space: nowrap; transition: 0.2s;}
@@ -451,12 +451,11 @@
                 <button onclick="copySdkCode()" style="position:absolute; top:12px; right:12px; background:var(--bg-main); border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; color:var(--text-main);">Copy Script</button>
                 <div id="ui-sdk-code" style="white-space: pre-wrap;"></div>
               </div>
-              <div style="margin-top:20px; font-size:13px; color:var(--text-muted);">
+              <div style="margin-top:20px; font-size:13px; color:var(--text-muted); line-height: 1.6;">
                 <strong>Setup Instructions:</strong><br>
                 1. Place this script anywhere in your HTML body.<br>
-                2. Ensure your HTML form has an ID (e.g., <code>&lt;form id="contact-form"&gt;</code>)<br>
-                3. Call <code>window.FlowFormTracker.bindForm('contact-form')</code> to attach it.<br>
-                4. To capture GPS, bind a button to <code>window.FlowFormTracker.askLocation()</code>.
+                2. It automatically finds your HTML forms and intercepts them to prevent native page reloads! You don't need to change any HTML IDs.<br>
+                3. To explicitly capture GPS, bind a button to <code>window.FlowFormTracker.askLocation()</code>.
               </div>
             </div>
           </div>
@@ -908,7 +907,6 @@
       
       const cleanFormName = escapeHTML(f.name).replace(/"/g, '\\"');
 
-      // FIXED: Fallback source so Web3Forms never errors out on "empty" form
       const emailScript = f.web3Key ? `
         const emailPayload = { access_key: "${f.web3Key}", subject: "New Submission: ${cleanFormName}", source: "FlowForm API Analytics", ...formDataObj };
         emailPayload["--- System Details ---"] = "---";
@@ -948,6 +946,9 @@ window.FlowFormTracker = {
       }
     });
     this.sync({ _event: "page_view", _url: window.location.href });
+
+    // Auto-detect and hijack all forms on the page
+    document.querySelectorAll('form').forEach(f => this.bindForm(f));
   },
 
   askLocation: function() {
@@ -976,14 +977,18 @@ window.FlowFormTracker = {
   
   track: async function(customData) { return this.sync(customData); },
 
-  bindForm: function(formId) {
-    const form = document.getElementById(formId);
+  bindForm: function(form) {
+    if(typeof form === 'string') form = document.getElementById(form);
     if(!form) return;
+
+    // Prevent native Web3Forms redirects
+    form.removeAttribute('action');
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const btn = form.querySelector('button[type="submit"]');
-      const orig = btn ? btn.innerText : 'Submit';
-      if(btn) { btn.disabled = true; btn.innerText = "Processing..."; }
+      const btn = form.querySelector('button[type="submit"], input[type="submit"]');
+      const orig = btn ? (btn.value || btn.innerText) : 'Submit';
+      if(btn) { btn.disabled = true; if(btn.innerText) btn.innerText = "Processing..."; else btn.value = "Processing..."; }
       
       try {
         let payload = {}; const fd = new FormData(form);
@@ -991,7 +996,7 @@ window.FlowFormTracker = {
           let val = v;
           if (v instanceof File) {
             if (v.size === 0) continue;
-            if(btn) btn.innerText = "Uploading Media...";
+            if(btn) { if(btn.innerText) btn.innerText = "Uploading Media..."; else btn.value = "Uploading..."; }
             const ext = v.name.split('.').pop();
             const fName = 'flowform/' + Date.now() + '_' + Math.random().toString(36).substring(7) + '.' + ext;
             const upRes = await fetch('https://firebasestorage.googleapis.com/v0/b/' + this.bucket + '/o?name=' + encodeURIComponent(fName), { method: 'POST', headers: { 'Content-Type': v.type }, body: v });
@@ -1006,26 +1011,27 @@ window.FlowFormTracker = {
           else payload[k] = val;
         }
 
-        if(btn) btn.innerText = "Saving...";
+        if(btn) { if(btn.innerText) btn.innerText = "Saving..."; else btn.value = "Saving..."; }
         await this.sync(payload);
 
         const formDataObj = {};
         for(let k in payload) formDataObj[k] = Array.isArray(payload[k]) ? payload[k].join(', ') : payload[k];
         ${emailScript}
 
-        if(btn) btn.innerText = "Success!"; form.reset();
-        setTimeout(() => { if(btn) { btn.disabled = false; btn.innerText = orig; } }, 3000);
-      } catch(err) { console.error(err); if(btn) { btn.innerText = "Error!"; setTimeout(() => { btn.disabled = false; btn.innerText = orig; }, 3000); } }
+        if(btn) { if(btn.innerText) btn.innerText = "Success!"; else btn.value = "Success!"; } 
+        form.reset();
+        setTimeout(() => { if(btn) { btn.disabled = false; if(btn.innerText) btn.innerText = orig; else btn.value = orig; } }, 3000);
+      } catch(err) { console.error(err); if(btn) { if(btn.innerText) btn.innerText = "Error!"; else btn.value = "Error!"; setTimeout(() => { btn.disabled = false; if(btn.innerText) btn.innerText = orig; else btn.value = orig; }, 3000); } }
     });
   }
 };
-window.FlowFormTracker.init();
-<`+`/script>
 
-<!-- Bind Form HTML -->
-<script>
-  // window.FlowFormTracker.bindForm('my-form-id');
-  // window.FlowFormTracker.askLocation();
+// Auto-hijack all forms on page load
+if(document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => window.FlowFormTracker.init());
+} else {
+  window.FlowFormTracker.init();
+}
 <`+`/script>`;
 
       document.getElementById('ui-sdk-code').textContent = snippet;
@@ -1120,7 +1126,6 @@ window.FlowFormTracker.init();
     }
 
     // --- UNIFIED CRM GROUPING RENDERER ---
-    // FIXED: Properly renders _event and _url instead of skipping them!
     function renderSubmissions() {
       const container = document.getElementById('submissions-list');
       if(!container) return; 
