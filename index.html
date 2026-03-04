@@ -3,597 +3,1071 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-  <title>FlowForm Dashboard</title>
+  <title>FlowForm | Universal Data Backend</title>
   
-  <!-- React & ReactDOM -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <!-- Babel for parsing JSX -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
-  <!-- Firebase (Compat libraries for single-file browser usage) -->
+  <!-- Firebase (Native JS Compat Libraries) -->
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore-compat.js"></script>
 
   <style>
+    /* === DESIGN TOKENS === */
     :root {
-      --bg-color: #f4f5f5; --card-bg: #ffffff; --text-main: #111111; --text-muted: #555555;
-      --text-light: #888888; --primary-red: #e53238; --primary-hover: #d42d33;
-      --border-color: #eaeaeb; --input-bg: #ffffff; --input-border: #cccccc;
-      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --bg-main: #f9fafb; --bg-alt: #ffffff; --text-main: #111827; --text-muted: #6b7280;
+      --border-color: #e5e7eb; --primary: #e53238; --primary-hover: #d42d33; --primary-light: #fef2f2;
+      --danger: #dc2626; --danger-bg: #fef2f2; --danger-border: #fecaca; --black: #111827; --white: #ffffff;
+      --focus-ring: rgba(229, 50, 56, 0.15);
+      --font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", sans-serif;
     }
 
+    /* === RESET & BASE === */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { background-color: var(--bg-color); color: var(--text-main); font-family: var(--font-family); -webkit-font-smoothing: antialiased; overflow-x: hidden; width: 100vw; }
-    .app-wrapper { min-height: 100vh; display: flex; flex-direction: column; width: 100%; overflow: hidden; }
+    html, body { background-color: var(--bg-main); color: var(--text-main); font-family: var(--font-family); -webkit-font-smoothing: antialiased; width: 100%; height: 100%; overflow: hidden; position: relative; }
     
-    /* Navigation */
-    .navbar { background: var(--card-bg); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 50; width: 100%; }
-    .nav-container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 16px; display: flex; justify-content: space-between; align-items: center; height: 64px; }
-    .nav-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 18px; font-weight: bold; color: var(--text-main); }
-    .nav-logo-icon { background: var(--primary-red); color: white; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; flex-shrink: 0; }
-    .nav-actions { display: flex; align-items: center; gap: 16px; }
-    .nav-link { background: none; border: none; font-size: 14px; font-weight: 500; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 8px 0; }
-    .nav-link.active { color: var(--primary-red); }
-    .user-email-badge { background: #f4f5f5; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--text-main); border: 1px solid var(--border-color); display: none; }
-    @media(min-width: 768px) { .user-email-badge { display: block; } }
+    /* Typography */
+    h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.03em; color: var(--text-main); word-break: break-word; }
+    p { line-height: 1.6; word-break: break-word; }
+    .text-muted { color: var(--text-muted); font-size: 14px; }
+    .title-h1 { font-size: 28px; margin-bottom: 8px; }
+    .title-h2 { font-size: 18px; margin-bottom: 8px; }
 
     /* Buttons */
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; white-space: nowrap; max-width: 100%; }
-    .btn:disabled { opacity: 0.7; cursor: not-allowed; }
-    .btn-primary { background: var(--primary-red); color: white; }
-    .btn-dark { background: var(--text-main); color: white; }
-    .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); }
-    .btn-danger { background: transparent; border: 1px solid #ffcccc; color: #d32f2f; }
-    .btn-google { background: white; border: 1px solid var(--border-color); color: var(--text-main); box-shadow: 0 1px 2px rgba(0,0,0,0.05); padding: 12px 24px; font-size: 16px; width: 100%; }
-    .btn-google:hover { background: #fbfbfb; border-color: #cccccc; }
-
-    /* Layout & Cards */
-    .main-content { flex-grow: 1; display: flex; flex-direction: column; width: 100%; }
-    .container { width: 100%; max-width: 1100px; margin: 0 auto; padding: 32px 16px; }
-    .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); width: 100%; overflow: hidden; }
-    .card-header { padding: 16px; border-bottom: 1px solid var(--border-color); background: #fbfbfb; display: flex; flex-direction: column; gap: 12px; }
-    .card-body { padding: 16px; }
-    
-    /* Typography & Utilities */
-    .title-h1 { font-size: 28px; font-weight: 800; color: var(--text-main); margin-bottom: 8px; line-height: 1.2; word-break: break-word; }
-    .title-h2 { font-size: 18px; font-weight: bold; color: var(--text-main); margin-bottom: 8px; word-break: break-word; }
-    .text-muted { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
-    .flex-between { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
-    .flex-center { display: flex; justify-content: center; align-items: center; }
-    .mb-6 { margin-bottom: 24px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: none; white-space: nowrap; max-width: 100%; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(229,50,56,0.2); }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(229,50,56,0.3); }
+    .btn-black { background: var(--black); color: var(--white); }
+    .btn-black:hover:not(:disabled) { background: #000; transform: translateY(-1px); }
+    .btn-white { background: var(--bg-alt); color: var(--text-main); border: 1px solid var(--border-color); }
+    .btn-white:hover:not(:disabled) { background: var(--bg-main); }
+    .btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+    .btn-icon { padding: 8px; background: none; border: none; color: var(--text-muted); cursor: pointer; border-radius: 8px; transition: 0.2s; display: flex; align-items: center; justify-content: center; flex-shrink: 0;}
+    .btn-icon:hover { background: var(--bg-main); color: var(--text-main); }
 
     /* Inputs */
-    .form-group { margin-bottom: 20px; width: 100%; }
-    .form-label { display: block; font-size: 12px; font-weight: bold; color: var(--text-main); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .form-input, .form-textarea { width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px; font-size: 16px !important; font-family: inherit; outline: none; box-sizing: border-box; }
-    .form-input:focus, .form-textarea:focus { border-color: var(--primary-red); box-shadow: 0 0 0 1px var(--primary-red); }
-    .form-textarea { resize: vertical; min-height: 100px; }
+    .input { width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 16px; outline: none; transition: border 0.2s, box-shadow 0.2s; font-family: inherit; background: var(--bg-alt); color: var(--text-main); }
+    .input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--focus-ring); }
+    .label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; }
+    .form-group { margin-bottom: 24px; width: 100%; }
+
+    /* Custom Toggle */
+    .toggle-wrapper { display: flex; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; background: var(--bg-main); margin-bottom: 24px; width: 100%;}
+    .toggle-switch { position: relative; width: 44px; height: 24px; background: var(--border-color); border-radius: 24px; transition: 0.3s; flex-shrink: 0; }
+    .toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .toggle-checkbox { display: none; }
+    .toggle-checkbox:checked + .toggle-switch { background: var(--primary); }
+    .toggle-checkbox:checked + .toggle-switch::after { transform: translateX(20px); }
+
+    /* === LAYOUTS (Views) === */
+    .view { display: none; height: 100%; width: 100%; flex-direction: column; overflow-y: auto; background: var(--bg-main); }
+    .view.active { display: flex; }
+    
+    .app-layout { display: none; height: 100%; width: 100%; overflow: hidden; background: var(--bg-main); }
+    .app-layout.active { display: flex; }
+
+    /* Sidebar */
+    .sidebar { width: 280px; background: var(--bg-alt); display: flex; flex-direction: column; z-index: 40; padding: 24px; gap: 32px; border-right: 1px solid var(--border-color); flex-shrink: 0; }
+    .brand { font-size: 20px; font-weight: 900; display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--primary); letter-spacing: -0.03em;}
+    .nav-list { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 14px; }
+    .nav-item:hover { color: var(--primary); background: var(--primary-light); }
+    .nav-item.active { background: var(--primary-light); color: var(--primary); }
+    
+    /* Main Area */
+    .main-area { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; background: var(--bg-main); width: 100%; max-width: 100vw; -webkit-overflow-scrolling: touch;}
+    .top-header { background: var(--bg-alt); padding: 24px 40px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 30; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; width: 100%;}
+    .workspace { padding: 32px 40px 100px; max-width: 1400px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 32px; }
+
+    /* Workspace Sub-Views */
+    .workspace-view { display: none; flex-direction: column; height: 100%; width: 100%; }
+    .workspace-view.active { display: flex; }
+
+    /* === BENTO UI === */
+    .bento-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; width: 100%; }
+    .bento-card { background: var(--bg-alt); border: 1px solid var(--border-color); border-radius: 20px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 12px; transition: transform 0.2s ease, box-shadow 0.2s ease; width: 100%; overflow: hidden;}
+    .bento-card.clickable { cursor: pointer; }
+    .bento-card.clickable:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(229,50,56,0.08); border-color: var(--primary); }
+    .bento-icon { width: 48px; height: 48px; background: var(--primary-light); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--primary); flex-shrink: 0; }
+    
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; width: 100%; }
+    .stat-card { background: var(--bg-alt); border: 1px solid var(--border-color); padding: 20px; border-radius: 16px; width: 100%; }
+    .stat-header { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px; font-weight: 700; text-transform: uppercase; margin-bottom: 12px;}
+    .stat-value { font-size: 32px; font-weight: 900; color: var(--text-main); }
+
+    /* Tables */
+    .table-container { background: var(--bg-alt); border: 1px solid var(--border-color); border-radius: 20px; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch;}
+    .table { width: 100%; border-collapse: collapse; text-align: left; min-width: 600px; }
+    .table th { padding: 16px 24px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); background: var(--bg-main); white-space: nowrap; }
+    .table td { padding: 16px 24px; border-bottom: 1px solid var(--border-color); font-size: 14px; vertical-align: middle; }
+    .table tr.clickable-row:hover td { background: var(--bg-main); cursor: pointer; }
+    .badge { display: inline-flex; align-items: center; padding: 4px 10px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; white-space: nowrap;}
+
+    /* Smart Inbox Cards */
+    .filter-bar { display: flex; gap: 12px; flex-wrap: wrap; background: var(--bg-alt); padding: 16px; border-radius: 16px; border: 1px solid var(--border-color); align-items: center; width: 100%; }
+    .filter-search { flex: 1 1 200px; display: flex; align-items: center; gap: 8px; background: var(--bg-main); padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border-color); }
+    .filter-search input { border: none; background: transparent; outline: none; width: 100%; font-size: 14px; font-family: inherit; color: var(--text-main); }
+    .date-range { display: flex; align-items: center; gap: 8px; background: var(--bg-main); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 13px;}
+    .date-range input[type="date"] { border: none; background: transparent; font-family: inherit; font-size: 13px; color: var(--text-main); outline: none; cursor: pointer; }
+    .filter-select { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-main); font-size: 13px; font-weight: 600; color: var(--text-main); outline: none; cursor: pointer; font-family: inherit;}
+    
+    .data-card { background: var(--bg-alt); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); margin-bottom: 16px; width: 100%; overflow: hidden;}
+    .data-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px dashed var(--border-color); padding-bottom: 16px; flex-wrap: wrap; gap: 12px;}
+    .data-important-title { font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom: 4px; word-break: break-word;}
+    .data-important-subtitle { font-size: 14px; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 6px; word-break: break-word;}
+    .data-timestamp { font-size: 12px; font-weight: 600; color: var(--text-muted); background: var(--bg-main); padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border-color); white-space: nowrap; display: flex; align-items: center; gap: 6px;}
+    
+    .data-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; width: 100%; }
+    .data-field { background: var(--bg-main); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; overflow: hidden; }
+    .data-field-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+    .data-field-value { font-size: 14px; color: var(--text-main); word-break: break-word; white-space: pre-wrap; line-height: 1.5; overflow-wrap: break-word; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 32px; overflow-x: auto; margin-top: 16px; border-bottom: 1px solid var(--border-color); scrollbar-width: none; width: 100%; max-width: 100vw; -webkit-overflow-scrolling: touch;}
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { padding: 0 0 12px 0; background: none; border: none; font-size: 14px; font-weight: 700; color: var(--text-muted); cursor: pointer; position: relative; white-space: nowrap; transition: 0.2s;}
+    .tab:hover { color: var(--primary); }
+    .tab.active { color: var(--primary); }
+    .tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: var(--primary); border-radius: 3px 3px 0 0; }
+    .tab-content { display: none; animation: fadeIn 0.3s ease; width: 100%; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Modals */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.6); display: none; align-items: center; justify-content: center; z-index: 100; padding: 16px; backdrop-filter: blur(4px); }
+    .modal-overlay.active { display: flex; }
+    .modal-content { background: var(--bg-alt); border-radius: 20px; width: 100%; max-width: 450px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); display: flex; flex-direction: column; overflow: hidden; animation: slideUp 0.3s ease; max-height: 90vh;}
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header { padding: 24px 24px 0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;}
+    .modal-body { padding: 24px; overflow-y: auto;}
+    .modal-footer { padding: 20px 24px; background: var(--bg-main); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; flex-shrink: 0; flex-wrap: wrap;}
+
+    /* Misc */
+    .code-box { background: #111827; color: #e5e7eb; padding: 20px; border-radius: 12px; font-family: monospace; font-size: 13px; line-height: 1.5; overflow-x: auto; width: 100%; white-space: pre-wrap; word-break: break-all;}
+    .chart-container { height: 220px; display: flex; align-items: flex-end; gap: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 24px; width: 100%; overflow-x: auto;}
+    .chart-bar-wrap { flex: 1; min-width: 30px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 8px; height: 100%; }
+    .chart-bar { width: 100%; background: var(--primary-light); border-radius: 6px 6px 0 0; position: relative; transition: 0.3s; cursor: pointer; }
+    .chart-bar:hover { background: var(--primary); }
 
     /* Landing Page */
-    .landing-hero { text-align: center; padding: 40px 16px; background: white; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
-    .landing-title { font-size: 36px; font-weight: 900; line-height: 1.1; margin-bottom: 16px; letter-spacing: -1px; width: 100%; }
-    .landing-subtitle { font-size: 16px; color: var(--text-muted); max-width: 600px; margin: 0 auto 32px auto; line-height: 1.6; padding: 0 10px; width: 100%; }
+    .landing-nav { display: flex; justify-content: space-between; align-items: center; padding: 24px 40px; max-width: 1400px; margin: 0 auto; width: 100%; }
 
-    /* Dashboard Grid & Tables */
-    .stats-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 32px; width: 100%; }
-    .stat-card { background: white; border: 1px solid var(--border-color); padding: 20px; border-radius: 8px; display: flex; align-items: center; gap: 16px; width: 100%; }
-    .stat-icon { width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 24px; }
-    .stat-icon.red { background: #ffebee; color: var(--primary-red); }
-    .stat-icon.blue { background: #e3f2fd; color: #1976d2; }
-    .stat-icon.green { background: #e8f5e9; color: #388e3c; }
-    .stat-value { font-size: 24px; font-weight: bold; margin-top: 4px; }
-    
-    .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; display: block; border-radius: 8px; }
-    .table { width: 100%; border-collapse: collapse; min-width: 600px; }
-    .table th { text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); background: #fbfbfb; white-space: nowrap; }
-    .table td { padding: 16px; border-bottom: 1px solid var(--border-color); font-size: 14px; word-break: break-word; }
-    .badge { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
-    .badge-green { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-    .badge-yellow { background: #fff8e1; color: #f57f17; border: 1px solid #ffecb3; }
-    .badge-gray { background: var(--bg-color); color: var(--text-main); }
-
-    /* Tabs & Modals */
-    .tabs-wrapper { background: white; border-bottom: 1px solid var(--border-color); width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .tabs-container { display: flex; gap: 24px; padding: 0 16px; max-width: 1100px; margin: 0 auto; width: max-content; }
-    .tab { padding: 16px 0; background: none; border: none; font-size: 14px; font-weight: 500; color: var(--text-muted); cursor: pointer; position: relative; white-space: nowrap; flex-shrink: 0; }
-    .tab.active { color: var(--primary-red); }
-    .tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--primary-red); border-radius: 3px 3px 0 0; }
-
-    .modal-overlay { position: fixed; inset: 0; background: rgba(17,17,17,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; backdrop-filter: blur(2px); }
-    .modal-content { background: white; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 95vh; display: flex; flex-direction: column; }
-    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: #fbfbfb; border-radius: 12px 12px 0 0; flex-shrink: 0; }
-    .modal-close { background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-light); line-height: 1; padding: 0 8px; }
-    .modal-body { padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    .modal-footer { padding: 16px 20px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; background: white; border-radius: 0 0 12px 12px; flex-shrink: 0; }
-    .modal-footer .btn { width: 100%; }
-
-    /* Integration Grid */
-    .integration-grid { display: grid; grid-template-columns: 1fr; gap: 24px; width: 100%; }
-    .code-block { background: #111; border-radius: 0 0 8px 8px; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .code-block-body { padding: 16px; color: #e6e6e6; font-family: monospace; font-size: 13px; white-space: pre; width: max-content; min-width: 100%; }
-
-    /* Login */
-    .login-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg-color); padding: 16px; width: 100%; }
-    .login-card { background: white; width: 100%; max-width: 400px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden; padding: 40px 24px; text-align: center; }
-
-    /* Desktop Queries */
-    @media (min-width: 768px) {
-      .landing-title { font-size: 56px; } .landing-subtitle { font-size: 20px; } .title-h1 { font-size: 32px; }
-      .flex-between { flex-direction: row; align-items: center; }
-      .stats-grid { grid-template-columns: repeat(3, 1fr); }
-      .integration-grid { grid-template-columns: 1fr 1fr; }
-      .card-header { flex-direction: row; }
-      .modal-footer { flex-direction: row; } .modal-footer .btn { width: auto; }
+    /* === STRICT MOBILE RULES === */
+    .mobile-nav { display: none; }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .app-layout { flex-direction: column; }
+      .mobile-nav { display: flex; justify-content: space-around; background: var(--bg-alt); padding: 12px; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; border-top: 1px solid var(--border-color); padding-bottom: calc(12px + env(safe-area-inset-bottom)); width: 100%; }
+      .mobile-nav button { background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; cursor: pointer;}
+      .mobile-nav button.active { color: var(--primary); }
+      .top-header { padding: 16px; flex-direction: column; align-items: flex-start; width: 100%; box-sizing: border-box; }
+      .top-header .btn { width: 100%; }
+      .workspace { padding: 16px 16px 100px 16px; gap: 16px; width: 100%; box-sizing: border-box;}
+      .bento-grid, .stats-grid, .data-body { grid-template-columns: 1fr; }
+      .data-header { flex-direction: column; gap: 8px; }
+      .data-timestamp { align-self: flex-start; }
+      .tabs { padding: 0 16px; margin-left: -16px; margin-right: -16px; width: 100vw; max-width: 100vw; }
+      .tabs .tab:first-child { margin-left: 16px; }
+      .tabs .tab:last-child { margin-right: 16px; }
+      .landing-nav { padding: 16px; }
+      .modal-footer { flex-direction: column; }
+      .modal-footer .btn { width: 100%; margin-left: 0; }
     }
   </style>
 </head>
 <body>
-  <div id="root"></div>
 
-  <script type="text/babel">
-    const { useState, useEffect } = React;
+  <!-- ========================================== -->
+  <!-- 1. LANDING PAGE VIEW                       -->
+  <!-- ========================================== -->
+  <div id="view-landing" class="view active" style="background: var(--bg-alt);">
+    <div style="padding: 24px 40px; display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; width: 100%;">
+      <div style="font-weight: 900; font-size: 22px; display: flex; align-items: center; gap: 8px; color: var(--primary);">
+        FlowForm Pro
+      </div>
+      <button class="btn btn-white" onclick="switchRootView('view-login')">Console Login</button>
+    </div>
+    
+    <div style="text-align: center; padding: 60px 16px; max-width: 800px; margin: 0 auto; width: 100%;">
+      <div style="display:inline-block; background:var(--primary-light); color:var(--primary); padding:6px 16px; border-radius:20px; font-size:13px; font-weight:700; margin-bottom:24px;">Universal Data API Live</div>
+      <h1 style="font-size: clamp(36px, 6vw, 64px); line-height: 1.1; margin-bottom: 24px;">The backend for <span style="color: var(--primary)">everything</span>.</h1>
+      <p style="font-size: 16px; color: var(--text-muted); margin-bottom: 40px; line-height: 1.6;">Ingest user activity, app metadata, scraping outputs, arrays, nested JSON, and huge media files directly into your dashboard.</p>
+      <button class="btn btn-primary" style="padding: 16px 32px; font-size: 16px;" onclick="switchRootView('view-login')">Start Ingesting Data</button>
+    </div>
 
-    // --- YOUR FIREBASE CONFIGURATION ---
+    <div style="padding: 0 16px 100px; max-width: 1400px; margin: 0 auto; width: 100%;">
+      <div class="bento-grid">
+        <div class="bento-card">
+          <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></div>
+          <h3 class="title-h2">Universal Ingestion</h3>
+          <p class="text-muted">Push arbitrary JSON, nested maps, location coordinates, or standard form payloads. The dashboard dynamically renders it all beautifully.</p>
+        </div>
+        <div class="bento-card">
+          <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg></div>
+          <h3 class="title-h2">SaaS Data Isolation</h3>
+          <p class="text-muted">Built for scale. Every user's data is strictly partitioned in our backend. No cross-contamination, absolute privacy.</p>
+        </div>
+        <div class="bento-card">
+          <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></div>
+          <h3 class="title-h2">Massive Media Support</h3>
+          <p class="text-muted">Accept large video and 10-minute audio uploads directly via Firebase Cloud Storage, linked natively to your data cards.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. LOGIN VIEW                              -->
+  <!-- ========================================== -->
+  <div id="view-login" class="view" style="justify-content: center; align-items: center; padding: 16px;">
+    <div class="bento-card" style="max-width: 400px; width: 100%; text-align: center; padding: 40px 24px;">
+      <h2 class="title-h1" style="font-size: 32px; color: var(--primary); margin-bottom: 24px;">FlowForm</h2>
+      <h2 class="title-h1" style="font-size: 24px;">Console Login</h2>
+      <p class="text-muted" style="margin-bottom: 32px;">Secure Authentication</p>
+      
+      <button id="btn-google-login" class="btn btn-white" style="width: 100%; padding: 16px; font-size: 15px;" onclick="doLogin()">
+        <svg viewBox="0 0 24 24" width="18" height="18" style="margin-right: 8px;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" /><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" /><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /></svg>
+        Continue with Google
+      </button>
+      <button class="btn" style="background:none; color:var(--text-muted); margin-top:16px; width:100%;" onclick="switchRootView('view-landing')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 3. APP WORKSPACE (Logged In)               -->
+  <!-- ========================================== -->
+  <div id="view-workspace" class="app-layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand" style="font-size: 24px;" onclick="openWorkspaceView('ws-dashboard')">
+        FlowForm
+      </div>
+      <nav class="nav-list">
+        <div class="nav-item active" onclick="openWorkspaceView('ws-dashboard')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg> Workspace
+        </div>
+      </nav>
+      <div style="margin-top: auto;">
+        <div style="background:var(--bg-main); padding:16px; border-radius:12px; border: 1px solid var(--border-color); margin-bottom:12px;">
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Logged in as</div>
+          <div id="ui-user-email" style="font-size:13px; font-weight:700; word-break:break-all;">...</div>
+        </div>
+        <div class="nav-item" style="color:var(--danger);" onclick="doLogout()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> Log out
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile Nav -->
+    <div class="mobile-nav">
+      <button class="active" onclick="openWorkspaceView('ws-dashboard')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg> Workspace
+      </button>
+      <button onclick="doLogout()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> Logout
+      </button>
+    </div>
+
+    <main class="main-area">
+      
+      <!-- WS-A: DASHBOARD -->
+      <div id="ws-dashboard" class="workspace-view active">
+        <header class="top-header">
+          <h2 class="title-h1" style="margin:0;">Overview</h2>
+          <button class="btn btn-primary" onclick="openModal('modal-new-project')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> New Project
+          </button>
+        </header>
+        <div class="workspace">
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-header">Total Projects</div><div class="stat-value" id="stat-proj-count">0</div></div>
+            <div class="stat-card"><div class="stat-header">Active Endpoints</div><div class="stat-value" id="stat-form-count">0</div></div>
+          </div>
+          <h2 class="title-h2">Your Projects</h2>
+          <div class="bento-grid" id="projects-grid">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- WS-B: PROJECT -->
+      <div id="ws-project" class="workspace-view">
+        <header class="top-header" style="flex-direction: column; align-items: flex-start; gap: 16px;">
+          <button class="btn-icon" style="padding:0; color:var(--text-muted); background:none; border:none; justify-content:flex-start;" onclick="openWorkspaceView('ws-dashboard')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Back to Workspace
+          </button>
+          <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <h2 class="title-h1" style="margin:0;" id="ui-proj-title">Project Name</h2>
+            <button class="btn btn-primary" onclick="openModal('modal-new-form')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> New Endpoint
+            </button>
+          </div>
+        </header>
+        <div class="workspace">
+          <div class="table-container">
+            <table class="table">
+              <thead><tr><th>Endpoint Name</th><th>Type</th><th>Created</th></tr></thead>
+              <tbody id="forms-table-body">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- WS-C: FORM / ENDPOINT -->
+      <div id="ws-form" class="workspace-view">
+        <header style="background: var(--bg-alt); padding-top: 24px; border-bottom: 1px solid var(--border-color); width: 100%;">
+          <div style="padding: 0 16px; display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn-icon" style="padding:0; color:var(--text-muted); background:none; border:none; justify-content:flex-start;" onclick="openWorkspaceView('ws-project')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Back
+            </button>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+              <h2 class="title-h1" style="margin:0;" id="ui-form-title">Endpoint</h2>
+              <span class="badge" id="ui-form-type-badge">Web Form</span>
+            </div>
+          </div>
+          <div class="tabs">
+            <button class="tab active" onclick="switchFormTab('tab-inbox', this)">Data Explorer</button>
+            <button class="tab" onclick="switchFormTab('tab-analytics', this)">Analytics</button>
+            <button class="tab" onclick="switchFormTab('tab-sdk', this)">Integration SDK</button>
+            <button class="tab" onclick="switchFormTab('tab-settings', this)">Settings</button>
+          </div>
+        </header>
+
+        <div class="workspace">
+          
+          <!-- TAB 1: INBOX -->
+          <div id="tab-inbox" class="tab-content active">
+            <div class="filter-bar">
+              <div class="filter-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="search-input" placeholder="Search payloads..." oninput="renderSubmissions()">
+              </div>
+              <div class="date-range">
+                <span style="color:var(--text-muted); font-weight:600; font-size:12px;">Date:</span>
+                <input type="date" id="filter-start-date" onchange="renderSubmissions()" />
+                <span style="color:var(--text-muted)">to</span>
+                <input type="date" id="filter-end-date" onchange="renderSubmissions()" />
+              </div>
+              <select class="filter-select" id="filter-type" onchange="renderSubmissions()">
+                <option value="all">All Submissions</option>
+                <option value="media">Has Media Attached</option>
+              </select>
+            </div>
+            <div id="submissions-list">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- TAB 2: ANALYTICS -->
+          <div id="tab-analytics" class="tab-content">
+            <div class="stats-grid">
+              <div class="stat-card"><div class="stat-header">Total Submissions</div><div class="stat-value" id="stat-sub-count">0</div></div>
+              <div class="stat-card"><div class="stat-header">Media / Files</div><div class="stat-value" id="stat-media-count" style="color: var(--primary);">0</div></div>
+            </div>
+            <div class="bento-grid" style="margin-top: 24px;">
+              <div class="bento-card" style="grid-column: 1 / -1;">
+                <h3 class="title-h2">Submission Activity</h3>
+                <p class="text-muted">Requires Premium Tier for live chart data.</p>
+                <div class="chart-container">
+                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 20%;"></div><span class="chart-label">Mon</span></div>
+                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 45%;"></div><span class="chart-label">Tue</span></div>
+                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 80%;"></div><span class="chart-label">Wed</span></div>
+                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 60%;"></div><span class="chart-label">Thu</span></div>
+                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 95%; background: var(--primary);"></div><span class="chart-label" style="color:var(--primary);">Fri</span></div>
+                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 30%;"></div><span class="chart-label">Sat</span></div>
+                  <div class="chart-bar-wrap"><div class="chart-bar" style="height: 15%;"></div><span class="chart-label">Sun</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: SDK -->
+          <div id="tab-sdk" class="tab-content">
+            <div class="bento-card" style="margin-bottom: 24px;">
+              <h3 class="title-h2">1. The Advanced Data API</h3>
+              <p class="text-muted" style="margin-bottom: 16px;">This script provides a universal <code>FlowForm.track()</code> function. You can push ANY custom data (tracking info, scraping results, locations, nested JSON) directly to your dashboard.</p>
+              
+              <div class="code-box" style="position:relative; margin-bottom: 16px;">
+                <button onclick="copyTrackingCode()" style="position:absolute; top:12px; right:12px; background:var(--bg-main); border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; color:var(--text-main);">Copy Script</button>
+                <div id="ui-tracking-code" style="white-space: pre-wrap;"></div>
+              </div>
+            </div>
+
+            <div class="bento-card">
+              <h3 class="title-h2">2. Universal Form Integration</h3>
+              <p class="text-muted">Place this script in your HTML to capture web forms. It automatically handles inputs, checkboxes (arrays), and uploads massive media files to Firebase Storage.</p>
+              <div class="code-box" style="margin-top: 16px; position:relative;">
+                <button onclick="copySdkCode()" style="position:absolute; top:12px; right:12px; background:var(--bg-main); border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; color:var(--text-main);">Copy Script</button>
+                <div id="ui-sdk-code" style="white-space: pre-wrap;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4: SETTINGS -->
+          <div id="tab-settings" class="tab-content">
+            <div class="bento-card" style="max-width: 600px; margin-bottom: 24px;">
+              <h3 class="title-h2">Email Notifications</h3>
+              <p class="text-muted" style="margin-bottom: 16px;">Receive an email every time this endpoint captures data.</p>
+              
+              <label class="toggle-wrapper" style="margin-bottom: 0;" onclick="toggleEmailSetup(event)">
+                <div><div style="font-weight: 700; font-size: 14px;">Enable Web3Forms Routing</div></div>
+                <input type="checkbox" class="toggle-checkbox" id="settings-email-toggle">
+                <div class="toggle-switch"></div>
+              </label>
+
+              <div id="settings-web3-box" style="display:none; background:var(--bg-main); padding:16px; border-radius:12px; border:1px solid var(--border-color); margin-top:16px;">
+                <p style="font-size:13px; color:var(--text-main); margin-bottom:12px; line-height:1.5;">
+                  Get a free Access Key from <a href="https://web3forms.com" target="_blank" style="color:var(--primary); font-weight:700; text-decoration: none;">Web3Forms.com</a> to enable email delivery.
+                </p>
+                <input type="text" id="settings-web3-key" class="input" placeholder="Paste Web3Forms Access Key here..." style="font-family:monospace; margin-bottom: 12px;" />
+              </div>
+              <button class="btn btn-black" style="width:fit-content; margin-top: 16px;" id="btn-save-settings" onclick="saveFormSettings()">Save Configuration</button>
+            </div>
+
+            <div class="bento-card" style="max-width: 600px; border-color: var(--danger-border);">
+              <h3 class="title-h2" style="color: var(--danger);">Danger Zone</h3>
+              <p class="text-muted">Deleting this endpoint will permanently wipe all collected data associated with it. This action cannot be reversed.</p>
+              <button class="btn btn-danger" style="width: fit-content; margin-top: 16px;" onclick="deleteActiveForm()">Delete Endpoint</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      
+    </main>
+  </div>
+
+  <!-- === MODALS === -->
+  
+  <!-- New Project Modal -->
+  <div id="modal-new-project" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="title-h2" style="margin:0;">Create Project</h3>
+        <button class="btn-icon" onclick="closeModal('modal-new-project')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin:0;">
+          <label class="label">Project Name</label>
+          <input type="text" class="input" placeholder="e.g., Client Website" id="input-new-proj">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-white" onclick="closeModal('modal-new-project')">Cancel</button>
+        <button class="btn btn-primary" onclick="handleCreateProject()" id="btn-create-proj">Create Project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Endpoint Modal -->
+  <div id="modal-new-form" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="title-h2" style="margin:0;">Create Endpoint</h3>
+        <button class="btn-icon" onclick="closeModal('modal-new-form')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="label">Endpoint Name</label>
+          <input type="text" class="input" placeholder="e.g., General Data Ingestion" id="input-new-form-name">
+        </div>
+        <div class="form-group">
+          <label class="label">Endpoint Type</label>
+          <select class="input" id="input-new-form-type">
+            <option value="tracker">Universal Data / API Tracker</option>
+            <option value="form">Standard Web Form</option>
+          </select>
+        </div>
+
+        <label class="toggle-wrapper" style="margin-bottom: 0;" onclick="toggleNewFormEmail(event)">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="font-weight: 700; font-size: 13px;">Enable Email Alerts</div>
+          </div>
+          <input type="checkbox" class="toggle-checkbox" id="new-form-email-toggle">
+          <div class="toggle-switch"></div>
+        </label>
+
+        <div id="new-form-web3-box" style="display:none; background:var(--bg-main); padding:16px; border-radius:12px; border:1px solid var(--border-color); margin-top:16px;">
+          <div style="font-size: 13px; color: var(--text-main); margin-bottom: 12px; line-height: 1.5;">
+            1. Go to <a href="https://web3forms.com" target="_blank" style="color:var(--primary); font-weight:700; text-decoration:none;">Web3Forms.com</a><br/>
+            2. Paste your Free API Key below.
+          </div>
+          <input type="text" class="input" placeholder="Paste Access Key..." id="input-new-form-web3" style="font-family: monospace; font-size: 13px;">
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-white" onclick="closeModal('modal-new-form')">Cancel</button>
+        <button class="btn btn-primary" onclick="handleCreateForm()" id="btn-create-form">Create Endpoint</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- === JAVASCRIPT LOGIC === -->
+  <script>
+    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
-      apiKey: "AIzaSyCbgSxM872VsvEYjc4tLrDPOFCEDE2FFfo",
-      authDomain: "karangauri-3cf49.firebaseapp.com",
-      projectId: "karangauri-3cf49",
-      storageBucket: "karangauri-3cf49.firebasestorage.app",
-      messagingSenderId: "473556188605",
-      appId: "1:473556188605:web:9a3e787b37ae84ed1766d4"
+      apiKey: "AIzaSyD7T3i70I-LMCOXlb-7fyjTBi1EAJED7lw",
+      authDomain: "safarxin2026.firebaseapp.com",
+      projectId: "safarxin2026",
+      storageBucket: "safarxin2026.firebasestorage.app",
+      messagingSenderId: "1098859730310",
+      appId: "1:1098859730310:web:101a28da4dcce69bf84807",
+      measurementId: "G-2BY1BZY0QS"
     };
 
-    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
-    const appIdentifier = 'flowform-production';
+    const APP_ID = 'flowform-saas';
 
-    // SVG Icons
-    const IconLock = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>;
-    const IconFileText = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
-    const IconLogOut = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>;
-    const IconCode = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>;
-    const IconInbox = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>;
-    const IconBarChart = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>;
-    const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
-    const IconMail = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>;
-    const IconArrowLeft = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
-    const IconTrash = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
-    const IconTerminal = () => <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>;
-    const IconGoogle = () => <svg viewBox="0 0 24 24" width="1.2em" height="1.2em"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" /><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" /><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /></svg>;
+    // --- STATE ---
+    let currentUser = null;
+    let projectsData = [];
+    let formsData = [];
+    let submissionsData = [];
+    
+    let activeProjectId = null;
+    let activeFormId = null;
 
-    function App() {
-      const [user, setUser] = useState(null);
-      const [loading, setLoading] = useState(true);
-      // HARDCODE THE INITIAL VIEW TO ALWAYS BE 'landing'
-      const [view, setView] = useState('landing');
-      const [activeForm, setActiveForm] = useState(null);
-      const [forms, setForms] = useState([]);
-      const [submissions, setSubmissions] = useState([]);
+    let unsubProjects = null;
+    let unsubForms = null;
+    let unsubSubs = null;
 
-      useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-          setUser(currentUser);
-          setLoading(false);
-          // Notice we DO NOT automatically change the view here.
-          // It stays on 'landing' until the user explicitly clicks a button.
-        });
-        return () => unsubscribe();
-      }, []);
+    // --- AUTH LISTENER ---
+    auth.onAuthStateChanged(user => {
+      currentUser = user;
+      if (user) {
+        document.getElementById('ui-user-email').textContent = user.email;
+        switchRootView('view-workspace');
+        openWorkspaceView('ws-dashboard');
+        listenToProjects();
+      } else {
+        if(unsubProjects) unsubProjects();
+        if(unsubForms) unsubForms();
+        if(unsubSubs) unsubSubs();
+        switchRootView('view-landing');
+      }
+    });
 
-      useEffect(() => {
-        if (!user) {
-          setForms([]); setSubmissions([]); return;
-        }
-        
-        const formsRef = db.collection('artifacts').doc(appIdentifier).collection('users').doc(user.uid).collection('forms');
-        const unsubForms = formsRef.onSnapshot((snapshot) => {
-          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          data.sort((a, b) => b.createdAt - a.createdAt); setForms(data);
-        });
+    function doLogin() {
+      const btn = document.getElementById('btn-google-login');
+      btn.innerHTML = "Authenticating...";
+      auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(err => {
+        alert("Login Error: Make sure your current URL is added to Firebase Authorized Domains.");
+        btn.innerHTML = "Continue with Google";
+      });
+    }
 
-        const subsRef = db.collection('artifacts').doc(appIdentifier).collection('users').doc(user.uid).collection('submissions');
-        const unsubSubs = subsRef.onSnapshot((snapshot) => {
-          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          data.sort((a, b) => b.createdAt - a.createdAt); setSubmissions(data);
-        });
+    function doLogout() {
+      auth.signOut();
+    }
 
-        return () => { unsubForms(); unsubSubs(); };
-      }, [user]);
+    // --- FIREBASE LISTENERS ---
+    function listenToProjects() {
+      if(unsubProjects) unsubProjects();
+      unsubProjects = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects')
+        .onSnapshot(snap => {
+          projectsData = snap.docs.map(doc => ({id: doc.id, ...doc.data()})).sort((a,b) => b.createdAt - a.createdAt);
+          document.getElementById('stat-proj-count').textContent = projectsData.length;
+          renderProjects();
+        }, err => console.error("Rules Error:", err));
+    }
 
-      const handleCreateForm = async (name, targetEmail, web3formsKey) => {
-        if (!user) return false;
-        try {
-          await db.collection('artifacts').doc(appIdentifier).collection('users').doc(user.uid).collection('forms').add({
-            name: name || 'Untitled Form', targetEmail: targetEmail || user.email || 'user@example.com',
-            web3formsKey: web3formsKey || '', createdAt: Date.now(), status: 'active'
-          });
-          return true;
-        } catch (error) { alert(`Failed to create.\n${error.message}`); return false; }
-      };
-
-      const handleDeleteForm = async (formId) => {
-        if (!user) return;
-        try {
-          await db.collection('artifacts').doc(appIdentifier).collection('users').doc(user.uid).collection('forms').doc(formId).delete();
-          if (activeForm && activeForm.id === formId) { setView('dashboard'); setActiveForm(null); }
-        } catch (e) {}
-      };
-
-      const handleUpdateForm = async (formId, updates) => {
-        if (!user) return;
-        try {
-          await db.collection('artifacts').doc(appIdentifier).collection('users').doc(user.uid).collection('forms').doc(formId).update(updates);
-          setActiveForm(prev => ({ ...prev, ...updates }));
-        } catch (e) {}
-      };
-
-      const handleMockSubmit = async (formId, formData, web3formsKey) => {
-        if (!user) return;
-        try {
-          await db.collection('artifacts').doc(appIdentifier).collection('users').doc(user.uid).collection('submissions').add({ 
-            formId, data: formData, createdAt: Date.now(), read: false 
-          });
-
-          if (web3formsKey) {
-            await fetch('https://api.web3forms.com/submit', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ access_key: web3formsKey, subject: 'New Submission from FlowForm', from_name: 'FlowForm Notification', ...formData })
-            });
+    function listenToForms() {
+      if(!activeProjectId) return;
+      if(unsubForms) unsubForms();
+      unsubForms = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').doc(activeProjectId).collection('forms')
+        .onSnapshot(snap => {
+          formsData = snap.docs.map(doc => ({id: doc.id, ...doc.data()})).sort((a,b) => b.createdAt - a.createdAt);
+          document.getElementById('stat-form-count').textContent = formsData.length;
+          renderForms();
+          
+          if(activeFormId) {
+            const f = formsData.find(x => x.id === activeFormId);
+            if(f) {
+              document.getElementById('settings-email-toggle').checked = !!f.web3Key;
+              document.getElementById('settings-web3-box').style.display = f.web3Key ? 'block' : 'none';
+              document.getElementById('settings-web3-key').value = f.web3Key || '';
+              updateFormSDKUI(f); 
+            }
           }
-        } catch (error) { throw error; }
-      };
+        });
+    }
 
-      const handleSignOut = () => {
-        auth.signOut();
-        setView('landing');
-        setActiveForm(null);
-      };
+    function listenToSubmissions() {
+      if(!activeProjectId || !activeFormId) return;
+      if(unsubSubs) unsubSubs();
+      unsubSubs = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').doc(activeProjectId).collection('forms').doc(activeFormId).collection('submissions')
+        .onSnapshot(snap => {
+          submissionsData = snap.docs.map(doc => ({id: doc.id, ...doc.data()})).sort((a,b) => b.createdAt - a.createdAt);
+          document.getElementById('stat-sub-count').textContent = submissionsData.length;
+          
+          // Check for any media format
+          const mediaCount = submissionsData.filter(s => {
+            const strData = JSON.stringify(s || {}).toLowerCase();
+            return strData.includes('file:image|') || strData.includes('file:video|') || strData.includes('file:audio|') || strData.includes('file:raw|') || strData.includes('.mp4') || strData.includes('.png') || strData.includes('.jpg');
+          }).length;
+          
+          document.getElementById('stat-media-count').textContent = mediaCount;
+          
+          renderSubmissions();
+        });
+    }
 
-      if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading FlowForm...</div>;
+    // --- CRUD OPERATIONS ---
+    async function handleCreateProject() {
+      const name = document.getElementById('input-new-proj').value;
+      if(!name) return;
+      document.getElementById('btn-create-proj').innerText = "Creating...";
+      await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').add({ name, createdAt: Date.now() });
+      document.getElementById('btn-create-proj').innerText = "Create Project";
+      closeModal('modal-new-project');
+      document.getElementById('input-new-proj').value = '';
+    }
+
+    async function handleCreateForm() {
+      const name = document.getElementById('input-new-form-name').value || 'New Endpoint';
+      const type = document.getElementById('input-new-form-type').value;
+      const toggle = document.getElementById('new-form-email-toggle').checked;
+      const web3Key = document.getElementById('input-new-form-web3').value;
       
-      if (view === 'login') {
-        return <LoginView onBack={() => setView('landing')} onLoginSuccess={() => setView('dashboard')} />;
-      }
-
-      return (
-        <div className="app-wrapper">
-          <nav className="navbar">
-            <div className="nav-container">
-              <div className="nav-brand" onClick={() => setView('landing')}>
-                <div className="nav-logo-icon"><IconFileText /></div>
-                <span style={{ display: 'inline-block' }}>FlowForm</span>
-              </div>
-              <div className="nav-actions">
-                {user ? (
-                  <React.Fragment>
-                    <span className="user-email-badge">{user.email}</span>
-                    <button onClick={() => { setView('dashboard'); setActiveForm(null); }} className={`nav-link ${view === 'dashboard' ? 'active' : ''}`}>Dashboard</button>
-                    <button onClick={handleSignOut} className="nav-link"><IconLogOut /> <span style={{display: window.innerWidth > 768 ? 'inline' : 'none'}}>Sign Out</span></button>
-                  </React.Fragment>
-                ) : (
-                  <button onClick={() => setView('login')} className="btn btn-dark">Sign In</button>
-                )}
-              </div>
-            </div>
-          </nav>
-          <main className="main-content">
-            {view === 'landing' && <LandingView onGetStarted={() => { user ? setView('dashboard') : setView('login') }} user={user} />}
-            {view === 'dashboard' && user && <DashboardView forms={forms} submissions={submissions} onCreateForm={handleCreateForm} onSelectForm={(form) => { setActiveForm(form); setView('form-detail'); }} user={user} />}
-            {view === 'form-detail' && user && activeForm && <FormDetailView form={activeForm} submissions={submissions.filter(s => s.formId === activeForm.id)} onBack={() => { setView('dashboard'); setActiveForm(null); }} onDelete={() => handleDeleteForm(activeForm.id)} onUpdate={(updates) => handleUpdateForm(activeForm.id, updates)} onMockSubmit={(data) => handleMockSubmit(activeForm.id, data, activeForm.web3formsKey)} />}
-          </main>
-        </div>
-      );
+      document.getElementById('btn-create-form').innerText = "Creating...";
+      await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').doc(activeProjectId).collection('forms').add({
+        name, type, web3Key: toggle ? web3Key : '', createdAt: Date.now()
+      });
+      document.getElementById('btn-create-form').innerText = "Create Endpoint";
+      closeModal('modal-new-form');
+      document.getElementById('input-new-form-name').value = '';
     }
 
-    // --- SUB-COMPONENTS ---
+    async function saveFormSettings() {
+      const toggle = document.getElementById('settings-email-toggle').checked;
+      const web3Key = document.getElementById('settings-web3-key').value;
+      const btn = document.getElementById('btn-save-settings');
+      btn.innerText = "Saving...";
+      
+      await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').doc(activeProjectId).collection('forms').doc(activeFormId).update({
+        web3Key: toggle ? web3Key : ''
+      });
+      btn.innerText = "Save Configuration";
+      alert("Settings updated!");
+    }
 
-    function LoginView({ onBack, onLoginSuccess }) {
-      const [isAuthenticating, setIsAuthenticating] = useState(false);
+    async function deleteActiveForm() {
+      if(!window.confirm("Permanently delete this endpoint and all records?")) return;
+      await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').doc(activeProjectId).collection('forms').doc(activeFormId).delete();
+      openWorkspaceView('ws-project');
+    }
 
-      const handleGoogleLogin = async () => {
-        setIsAuthenticating(true);
-        const provider = new firebase.auth.GoogleAuthProvider();
-        try {
-          await auth.signInWithPopup(provider);
-          onLoginSuccess(); // Manually push to dashboard ONLY after successful click
-        } catch (error) {
-          console.error(error);
-          alert(`Login Failed: ${error.message}\nMake sure your domain is added to Firebase Authorized Domains.`);
-          setIsAuthenticating(false);
+    // --- RENDERING ---
+    function escapeHTML(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
+    }
+
+    function renderProjects() {
+      const grid = document.getElementById('projects-grid');
+      if (projectsData.length === 0) {
+        grid.innerHTML = '<div class="bento-card" style="grid-column:1/-1;text-align:center;padding:60px 20px;"><p class="text-muted">No projects yet. Create one to begin.</p></div>';
+        return;
+      }
+      grid.innerHTML = projectsData.map(p => `
+        <div class="bento-card clickable" onclick="selectProject('${p.id}', '${escapeHTML(p.name)}')">
+          <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
+          <div><h3 class="title-h2" style="margin-bottom:4px;">${escapeHTML(p.name)}</h3><p class="text-muted" style="font-family:monospace;font-size:12px;">ID: ${p.id}</p></div>
+        </div>
+      `).join('');
+    }
+
+    function selectProject(pid, pname) {
+      activeProjectId = pid;
+      activeFormId = null;
+      document.getElementById('ui-proj-title').textContent = pname;
+      openWorkspaceView('ws-project');
+      listenToForms();
+    }
+
+    function renderForms() {
+      const tbody = document.getElementById('forms-table-body');
+      if (formsData.length === 0) {
+        tbody.innerHTML = '<tr><td colSpan="3" style="text-align:center; padding:40px;" class="text-muted">No endpoints found. Create one.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = formsData.map(f => `
+        <tr class="clickable-row" onclick="selectForm('${f.id}')">
+          <td><div style="font-weight:700;font-size:15px;margin-bottom:4px;">${escapeHTML(f.name)}</div><div class="text-muted" style="font-family:monospace;font-size:12px;">ID: ${f.id}</div></td>
+          <td><span class="badge" style="${f.type==='tracker' ? 'background:var(--primary-light);color:var(--primary);border-color:var(--danger-border);' : ''}">${f.type==='form' ? 'Web Form' : 'Universal API Tracker'}</span></td>
+          <td>${new Date(f.createdAt).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    function updateFormSDKUI(f) {
+      document.getElementById('ui-form-title').textContent = f.name;
+      document.getElementById('ui-form-type-badge').textContent = f.type === 'form' ? 'Web Form' : 'Universal API Tracker';
+      
+      const bucket = firebaseConfig.storageBucket;
+      const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/artifacts/${APP_ID}/users/${currentUser.uid}/projects/${activeProjectId}/forms/${activeFormId}/submissions`;
+
+      // 1. The Advanced Data Tracking API
+      const trackingSnippet = `<!-- FlowForm Generic Tracking API -->
+<script>
+  window.FlowForm = {
+    endpoint: "${url}",
+    
+    // Converts generic JSON to strict Firestore format
+    _format: function(data) {
+      if (data === null || data === undefined) return { nullValue: null };
+      if (typeof data === 'boolean') return { booleanValue: data };
+      if (typeof data === 'number') return Number.isInteger(data) ? { integerValue: data.toString() } : { doubleValue: data };
+      if (typeof data === 'string') return { stringValue: data };
+      if (Array.isArray(data)) return { arrayValue: { values: data.map(this._format) } };
+      if (typeof data === 'object') {
+        const fields = {};
+        for (const key in data) fields[key] = this._format(data[key]);
+        return { mapValue: { fields } };
+      }
+      return { stringValue: String(data) };
+    },
+
+    track: async function(customData) {
+      try {
+        const fields = { 
+          createdAt: { integerValue: Date.now().toString() }, 
+          userAgent: { stringValue: navigator.userAgent }
+        };
+        
+        // Map all custom user data seamlessly
+        for (const key in customData) {
+          fields[key] = this._format(customData[key]);
         }
-      };
 
-      return (
-        <div className="login-wrapper">
-          <div className="login-card">
-            <div style={{ width: '56px', height: '56px', background: 'var(--primary-red)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: 'white', fontSize: '28px' }}><IconLock /></div>
-            <h2 className="title-h1" style={{ fontSize: '24px', marginBottom: '12px' }}>Welcome to FlowForm</h2>
-            <p className="text-muted" style={{ marginBottom: '32px' }}>Securely manage your forms and submissions using your Google account.</p>
+        const res = await fetch(this.endpoint, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ fields }) 
+        });
+        if(!res.ok) throw new Error("Tracking failed");
+        return true;
+      } catch(e) { console.error(e); return false; }
+    }
+  };
+
+  // Usage Examples:
+  /*
+  FlowForm.track({
+    event_type: "button_click",
+    page_url: window.location.href,
+    user_location: { lat: 34.05, lng: -118.24 }, // Safely passes nested JSON
+    scraped_images: ["img1.jpg", "img2.jpg"]    // Safely passes arrays
+  });
+  */
+<`+`/script>`;
+
+      document.getElementById('ui-tracking-code').textContent = trackingSnippet;
+
+      // 2. The Form Bind API (Handles huge files)
+      const web3Fetch = f.web3Key ? `\n        // Email Notification\n        await fetch('https://api.web3forms.com/submit', { \n          method: 'POST', \n          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, \n          body: JSON.stringify({ access_key: "${f.web3Key}", subject: "New FlowForm Submission", ...payload }) \n        });` : '';
+
+      const formSnippet = `<!-- FlowForm HTML Integration -->
+<script>
+  function bindFlowForm(formId) {
+    const form = document.getElementById(formId);
+    if(!form) return;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector('button[type="submit"]');
+      const origText = btn ? btn.innerText : 'Submit';
+      if(btn) { btn.disabled = true; btn.innerText = "Processing Data..."; }
+      
+      try {
+        let payload = {};
+        const formData = new FormData(form);
+        
+        for (let [key, value] of formData.entries()) {
+          let finalValue = value;
+
+          if (value instanceof File) {
+            if (value.size === 0) continue;
+            if(btn) btn.innerText = "Uploading Media...";
             
-            <button onClick={handleGoogleLogin} disabled={isAuthenticating} className="btn btn-google" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-              {isAuthenticating ? 'Connecting...' : <React.Fragment><IconGoogle /> Continue with Google</React.Fragment>}
-            </button>
+            // Upload directly to Firebase Cloud Storage (Handles massive files >1MB easily)
+            const ext = value.name.split('.').pop();
+            const fileName = 'flowform_uploads/' + Date.now() + '_' + Math.random().toString(36).substring(7) + '.' + ext;
+            const uploadUrl = 'https://firebasestorage.googleapis.com/v0/b/${bucket}/o?name=' + encodeURIComponent(fileName);
             
-            <button type="button" onClick={onBack} className="nav-link" style={{ width: '100%', justifyContent: 'center', margin: '24px auto 0' }}>&larr; Back to Home</button>
-          </div>
-        </div>
-      );
+            const uploadRes = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': value.type }, body: value });
+            if(!uploadRes.ok) throw new Error("Upload failed.");
+            
+            const uploadData = await uploadRes.json();
+            const downloadUrl = 'https://firebasestorage.googleapis.com/v0/b/${bucket}/o/' + encodeURIComponent(fileName) + '?alt=media&token=' + uploadData.downloadTokens;
+            
+            let typePrefix = 'FILE:RAW|';
+            if(value.type.startsWith('image/')) typePrefix = 'FILE:IMAGE|';
+            else if(value.type.startsWith('audio/')) typePrefix = 'FILE:AUDIO|';
+            else if(value.type.startsWith('video/')) typePrefix = 'FILE:VIDEO|';
+            
+            finalValue = typePrefix + downloadUrl;
+          }
+
+          if (payload[key]) {
+            if (!Array.isArray(payload[key])) payload[key] = [payload[key]];
+            payload[key].push(finalValue);
+          } else { payload[key] = finalValue; }
+        }
+
+        // Relies on the Tracking API formatter above
+        if (window.FlowForm && window.FlowForm.track) {
+           await window.FlowForm.track(payload);
+           ${web3Fetch}
+        }
+
+        if(btn) btn.innerText = "Success!";
+        form.reset();
+        setTimeout(() => { if(btn) { btn.disabled = false; btn.innerText = origText; } }, 3000);
+      } catch(err) {
+        console.error(err);
+        if(btn) { btn.innerText = "Error!"; setTimeout(() => { btn.disabled = false; btn.innerText = origText; }, 3000); }
+      }
+    });
+  }
+<`+`/script>
+
+<!-- Bind it to your HTML form id -->
+<script>
+  // bindFlowForm('my-flow-form');
+<`+`/script>`;
+
+      document.getElementById('ui-sdk-code').textContent = formSnippet;
     }
 
-    function LandingView({ onGetStarted, user }) {
-      return (
-        <div className="landing-hero">
-          <h1 className="landing-title">The form backend <br/>for your website</h1>
-          <p className="landing-subtitle">FlowForm captures submissions, sends email notifications via Web3Forms, and strictly separates data by user account.</p>
-          <button onClick={onGetStarted} className="btn btn-primary" style={{ fontSize: '16px', padding: '16px 32px' }}>
-            {user ? 'Go to Dashboard' : 'Get Started for Free'}
-          </button>
-        </div>
-      );
+    function selectForm(fid) {
+      activeFormId = fid;
+      const f = formsData.find(x => x.id === fid);
+      updateFormSDKUI(f);
+      openWorkspaceView('ws-form');
+      listenToSubmissions();
     }
 
-    function DashboardView({ forms, submissions, onCreateForm, onSelectForm, user }) {
-      const [showNewModal, setShowNewModal] = useState(false);
-      const [newFormName, setNewFormName] = useState('');
-      const [newFormEmail, setNewFormEmail] = useState(user.email || '');
-      const [newFormWeb3Key, setNewFormWeb3Key] = useState(''); 
-      const [isSubmitting, setIsSubmitting] = useState(false);
-
-      const handleCreate = async (e) => {
-        e.preventDefault(); setIsSubmitting(true);
-        const success = await onCreateForm(newFormName, newFormEmail, newFormWeb3Key);
-        setIsSubmitting(false);
-        if (success) { setShowNewModal(false); setNewFormName(''); setNewFormEmail(user.email); setNewFormWeb3Key(''); }
-      };
-
-      const totalSubs = submissions.length;
-      const recentSubs = submissions.filter(s => (Date.now() - s.createdAt) < 7 * 24 * 60 * 60 * 1000).length;
-
-      return (
-        <div className="container">
-          <div className="stats-grid">
-            <div className="stat-card"><div className="stat-icon red"><IconCode /></div><div><div className="text-muted">Total Forms</div><div className="stat-value">{forms.length}</div></div></div>
-            <div className="stat-card"><div className="stat-icon blue"><IconInbox /></div><div><div className="text-muted">Total Submissions</div><div className="stat-value">{totalSubs}</div></div></div>
-            <div className="stat-card"><div className="stat-icon green"><IconBarChart /></div><div><div className="text-muted">Last 7 Days</div><div className="stat-value">{recentSubs}</div></div></div>
-          </div>
-
-          <div className="flex-between mb-6" style={{flexDirection: 'row'}}>
-            <h1 className="title-h1" style={{ margin: 0 }}>Forms</h1>
-            <button onClick={() => setShowNewModal(true)} className="btn btn-primary"><IconPlus /> New form</button>
-          </div>
-
-          {forms.length === 0 ? (
-            <div className="card card-body flex-center" style={{ flexDirection: 'column', padding: '60px 20px', textAlign: 'center' }}>
-              <div className="stat-icon" style={{ background: 'var(--bg-color)', width: '64px', height: '64px', marginBottom: '16px', fontSize: '32px', color: 'var(--text-light)' }}><IconFileText /></div>
-              <h3 className="title-h2">No forms created yet</h3>
-              <p className="text-muted mb-6">Create your first form to generate an endpoint.</p>
-              <button onClick={() => setShowNewModal(true)} className="btn btn-dark"><IconPlus /> Create form</button>
-            </div>
-          ) : (
-            <div className="card table-responsive">
-              <table className="table">
-                <thead><tr><th>Name</th><th>Target</th><th style={{ textAlign: 'right' }}>Submissions</th></tr></thead>
-                <tbody>
-                  {forms.map(form => {
-                    const subCount = submissions.filter(s => s.formId === form.id).length;
-                    return (
-                      <tr key={form.id} onClick={() => onSelectForm(form)}>
-                        <td><div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{form.name}</div><div style={{ fontSize: '12px', color: 'var(--text-light)', fontFamily: 'monospace' }}>{form.id}</div></td>
-                        <td><div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)' }}><IconMail /> {form.targetEmail}</div>{form.web3formsKey ? <span className="badge badge-green" style={{ marginTop: '6px' }}>Email Live</span> : <span className="badge badge-yellow" style={{ marginTop: '6px' }}>Db Only</span>}</td>
-                        <td style={{ textAlign: 'right' }}><span className="badge badge-gray">{subCount}</span></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {showNewModal && (
-            <div className="modal-overlay">
-              <div className="modal-content">
-                <div className="modal-header"><h3 className="title-h2" style={{ margin: 0 }}>New Project</h3><button type="button" onClick={() => setShowNewModal(false)} className="modal-close">&times;</button></div>
-                <form onSubmit={handleCreate}>
-                  <div className="modal-body">
-                    <div className="form-group"><label className="form-label">Project Name</label><input type="text" required value={newFormName} onChange={(e) => setNewFormName(e.target.value)} placeholder="e.g., Contact Page" className="form-input" /></div>
-                    <div className="form-group"><label className="form-label">Notification Email</label><input type="email" required value={newFormEmail} onChange={(e) => setNewFormEmail(e.target.value)} placeholder="your@email.com" className="form-input" /></div>
-                    <div className="form-group" style={{ marginBottom: 0 }}><label className="form-label" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>Web3Forms Key <span style={{ color: 'var(--text-light)', fontWeight: 'normal', textTransform: 'none' }}>(Optional)</span></label><input type="text" value={newFormWeb3Key} onChange={(e) => setNewFormWeb3Key(e.target.value)} placeholder="Enter API key" className="form-input" style={{ fontFamily: 'monospace' }} /></div>
-                  </div>
-                  <div className="modal-footer"><button type="button" onClick={() => setShowNewModal(false)} className="btn btn-outline">Cancel</button><button type="submit" disabled={isSubmitting} className="btn btn-primary">{isSubmitting ? 'Creating...' : 'Create Form'}</button></div>
-                </form>
-              </div>
-            </div>
-          )}
-        </div>
-      );
+    // --- USER AGENT PARSER ---
+    function parseUA(uaString) {
+      if(!uaString) return "Unknown Device";
+      let browser = "Unknown Browser";
+      let os = "Unknown OS";
+      
+      if (uaString.includes("Firefox")) browser = "Firefox";
+      else if (uaString.includes("Chrome") && !uaString.includes("Edg")) browser = "Chrome";
+      else if (uaString.includes("Safari") && !uaString.includes("Chrome")) browser = "Safari";
+      else if (uaString.includes("Edg")) browser = "Edge";
+      
+      if (uaString.includes("Win")) os = "Windows";
+      else if (uaString.includes("Mac")) os = "macOS";
+      else if (uaString.includes("Linux")) os = "Linux";
+      else if (uaString.includes("Android")) os = "Android";
+      else if (uaString.includes("like Mac OS")) os = "iOS";
+      
+      return `${browser} on ${os}`;
     }
 
-    function FormDetailView({ form, submissions, onBack, onDelete, onUpdate, onMockSubmit }) {
-      const [activeTab, setActiveTab] = useState('submissions'); 
+    // --- UNIVERSAL DATA RENDERER (CRM STYLE) ---
+    function renderSubmissions() {
+      const container = document.getElementById('submissions-list');
+      if(!container) return; 
+      
+      const searchFilter = (document.getElementById('search-input')?.value || '').toLowerCase();
+      const startDateVal = document.getElementById('filter-start-date')?.value;
+      const endDateVal = document.getElementById('filter-end-date')?.value;
+      const typeVal = document.getElementById('filter-type')?.value || 'all';
 
-      return (
-        <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
-          <div style={{ background: 'white' }}>
-            <div style={{ width: '100%', maxWidth: '1100px', margin: '0 auto', padding: '24px 16px 0' }}>
-              <button onClick={onBack} className="nav-link" style={{ marginBottom: '16px' }}><IconArrowLeft /> Forms</button>
-              <div style={{ marginBottom: '24px' }}>
-                <h1 className="title-h1">{form.name}</h1>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px' }}>
-                  <span style={{ fontFamily: 'monospace', background: 'var(--bg-color)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', wordBreak: 'break-all' }}>ID: {form.id}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px', wordBreak: 'break-all' }}><IconMail /> {form.targetEmail}</span>
-                </div>
-              </div>
-            </div>
-            <div className="tabs-wrapper">
-              <div className="tabs-container">
-                <button onClick={() => setActiveTab('submissions')} className={`tab ${activeTab === 'submissions' ? 'active' : ''}`}>Inbox <span className="badge badge-gray" style={{marginLeft: '4px'}}>{submissions.length}</span></button>
-                <button onClick={() => setActiveTab('integration')} className={`tab ${activeTab === 'integration' ? 'active' : ''}`}>Integration</button>
-                <button onClick={() => setActiveTab('settings')} className={`tab ${activeTab === 'settings' ? 'active' : ''}`}>Settings</button>
-              </div>
-            </div>
-          </div>
-          <div className="container">
-            {activeTab === 'submissions' && <SubmissionsTab submissions={submissions} />}
-            {activeTab === 'integration' && <IntegrationTab form={form} onMockSubmit={onMockSubmit} />}
-            {activeTab === 'settings' && <SettingsTab form={form} onDelete={onDelete} onUpdate={onUpdate} />}
-          </div>
-        </div>
-      );
-    }
+      const startDate = startDateVal ? new Date(startDateVal).getTime() : 0;
+      const endDate = endDateVal ? new Date(endDateVal).getTime() + 86399999 : Infinity; 
 
-    function SubmissionsTab({ submissions }) {
-      if (submissions.length === 0) {
-        return (
-          <div className="card card-body flex-center" style={{ flexDirection: 'column', padding: '80px 20px', textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', color: 'var(--border-color)', marginBottom: '16px' }}><IconInbox /></div>
-            <h3 className="title-h2">Awaiting Submissions</h3>
-            <p className="text-muted">Your inbox is empty. Once you receive data, it will appear here.</p>
-          </div>
-        );
+      const filtered = submissionsData.filter(s => {
+        let strData = "";
+        try { strData = JSON.stringify(s).toLowerCase(); } catch(e) {}
+        
+        const matchesSearch = strData.includes(searchFilter);
+        const subTime = Number(s.createdAt) || 0;
+        const matchesDate = subTime >= startDate && subTime <= endDate;
+        
+        const hasMedia = strData.includes('file:image|') || strData.includes('file:video|') || strData.includes('file:audio|') || strData.includes('file:raw|') || strData.includes('.mp4') || strData.includes('.png') || strData.includes('.jpg');
+        const matchesType = typeVal === 'all' || (typeVal === 'media' && hasMedia);
+
+        return matchesSearch && matchesDate && matchesType;
+      });
+      
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="bento-card" style="text-align:center; padding:60px 20px;"><p class="text-muted">No records found matching your filters.</p></div>';
+        return;
       }
 
-      return (
-        <div className="card table-responsive">
-          <table className="table">
-            <thead><tr><th style={{ width: '160px' }}>Date</th><th>Submission Data</th></tr></thead>
-            <tbody>
-              {submissions.map((sub) => (
-                <tr key={sub.id} style={{ verticalAlign: 'top' }}>
-                  <td style={{ color: 'var(--text-muted)' }}>{new Date(sub.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}</td>
-                  <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {Object.entries(sub.data).map(([key, value]) => (
-                        <div key={key} style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
-                          <span style={{ fontWeight: '600', color: 'var(--text-muted)', textTransform: 'capitalize', minWidth: '100px' }}>{key.replace(/_/g, ' ')}:</span>
-                          <span style={{ color: 'var(--text-main)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1, minWidth: '150px' }}>{String(value)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
+      container.innerHTML = filtered.map(sub => {
+        // Extract dynamically (don't assume a "data" wrapper)
+        const payloadObj = { ...sub }; 
+        const systemKeys = ['id', 'formId', 'createdAt', 'userAgent', 'read'];
+        for (const key of systemKeys) delete payloadObj[key];
+        
+        // If they used the old data wrapper, merge it up
+        if (payloadObj.data && typeof payloadObj.data === 'object') {
+           Object.assign(payloadObj, payloadObj.data);
+           delete payloadObj.data;
+        }
+
+        const keys = Object.keys(payloadObj);
+        const nameKey = keys.find(k => k.toLowerCase().includes('name') && typeof payloadObj[k] === 'string' && payloadObj[k].length < 50);
+        const emailKey = keys.find(k => k.toLowerCase().includes('email') && typeof payloadObj[k] === 'string' && payloadObj[k].length < 50);
+        
+        const title = nameKey ? escapeHTML(payloadObj[nameKey]) : (emailKey ? escapeHTML(payloadObj[emailKey]) : 'Ingested Payload');
+        const parsedDevice = parseUA(sub.userAgent);
+        const subtitle = emailKey && nameKey ? escapeHTML(payloadObj[emailKey]) : parsedDevice;
+
+        let textFields = [];
+        let longTextFields = [];
+        let mediaFields = [];
+
+        // Advanced Universal Renderer Loop
+        for(const [k,v] of Object.entries(payloadObj)) {
+          if(k===nameKey || k===emailKey) continue;
+          
+          const cleanKey = k.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+          
+          if (v === null || v === undefined) {
+             textFields.push(`<div class="data-field"><div class="data-field-label">${escapeHTML(cleanKey)}</div><div class="data-field-value" style="color:var(--text-muted); font-style:italic;">Not provided</div></div>`);
+          } 
+          else if (typeof v === 'boolean') {
+             const badgeColor = v ? 'background:#e8f5e9; color:#2e7d32;' : 'background:#ffebee; color:#c62828;';
+             textFields.push(`<div class="data-field"><div class="data-field-label">${escapeHTML(cleanKey)}</div><div class="data-field-value"><span style="${badgeColor} padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 12px;">${v ? 'TRUE' : 'FALSE'}</span></div></div>`);
+          }
+          else if (typeof v === 'object') {
+            // Intelligent Object Check: Is it a location?
+            if (v.lat !== undefined && v.lng !== undefined) {
+               textFields.push(`<div class="data-field"><div class="data-field-label">${escapeHTML(cleanKey)}</div><div class="data-field-value"><a href="https://maps.google.com/?q=${v.lat},${v.lng}" target="_blank" style="color:var(--primary); text-decoration:underline;">📍 ${v.lat}, ${v.lng}</a></div></div>`);
+            } else {
+               // Generic nested JSON
+               longTextFields.push(`<div class="data-field" style="grid-column: 1 / -1"><div class="data-field-label">${escapeHTML(cleanKey)}</div><pre style="font-size:12px; white-space:pre-wrap; margin:0; background:var(--bg-alt); padding:12px; border-radius:8px; border:1px solid var(--border-color); overflow-x:auto; color:var(--text-main);">${escapeHTML(JSON.stringify(v, null, 2))}</pre></div>`);
+            }
+          } 
+          else {
+            // String or Number parser
+            const strV = String(v);
+            const lowerV = strV.toLowerCase();
+            const safeStrV = escapeHTML(strV);
+            
+            // Analyze file types
+            if(strV.startsWith('FILE:IMAGE|') || lowerV.match(/\.(jpeg|jpg|gif|png|webp|svg)(\?.*)?$/)) {
+              const url = strV.startsWith('FILE:') ? strV.split('|')[1] : strV;
+              mediaFields.push(`<div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 12px; background: var(--bg-alt); display:flex; flex-direction:column; gap:8px; min-width: 200px; flex: 1;"><div class="data-field-label" style="margin:0;">${escapeHTML(cleanKey)}</div><a href="${url}" target="_blank"><img src="${url}" style="max-height: 200px; max-width: 100%; border-radius: 6px; object-fit: contain; background: var(--bg-main); border: 1px solid var(--border-color);"></a></div>`);
+            } else if(strV.startsWith('FILE:AUDIO|') || lowerV.match(/\.(mp3|wav|ogg)(\?.*)?$/)) {
+              const url = strV.startsWith('FILE:') ? strV.split('|')[1] : strV;
+              mediaFields.push(`<div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 12px; background: var(--bg-alt); display:flex; flex-direction:column; gap:8px; min-width: 250px; flex: 1;"><div class="data-field-label" style="margin:0;">${escapeHTML(cleanKey)}</div><audio controls style="width: 100%; height: 40px;" src="${url}"></audio></div>`);
+            } else if(strV.startsWith('FILE:VIDEO|') || lowerV.match(/\.(mp4|webm|mov)(\?.*)?$/)) {
+              const url = strV.startsWith('FILE:') ? strV.split('|')[1] : strV;
+              mediaFields.push(`<div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 12px; background: var(--bg-alt); display:flex; flex-direction:column; gap:8px; min-width: 250px; flex: 1;"><div class="data-field-label" style="margin:0;">${escapeHTML(cleanKey)}</div><video controls style="max-height: 250px; max-width: 100%; border-radius: 6px; border: 1px solid var(--border-color); background: #000;" src="${url}"></video></div>`);
+            } else if(strV.startsWith('FILE:RAW|')) {
+              const url = strV.split('|')[1];
+              mediaFields.push(`<div style="border: 1px solid var(--border-color); padding: 12px; border-radius: 12px; background: var(--bg-alt); display:flex; flex-direction:column; gap:8px; min-width: 200px; flex: 1;"><div class="data-field-label" style="margin:0;">${escapeHTML(cleanKey)}</div><a href="${url}" target="_blank" class="btn btn-white" style="font-size:12px; padding:8px 12px; text-decoration:none; text-align:center;">Download File</a></div>`);
+            } 
+            // Smart Text Formatting
+            else {
+              let displayValue = safeStrV;
+              
+              if (!strV || strV.trim() === '') {
+                 displayValue = '<span style="color:var(--text-muted); font-style:italic;">Not provided</span>';
+              } else if (strV.startsWith('http')) {
+                 displayValue = `<a href="${safeStrV}" target="_blank" style="color:var(--primary); text-decoration:underline; word-break: break-all;">${safeStrV}</a>`;
+              } else if (cleanKey.toLowerCase().includes('email') && strV.includes('@')) {
+                 displayValue = `<a href="mailto:${safeStrV}" style="color:var(--primary); text-decoration:none;">${safeStrV}</a>`;
+              }
+
+              if(strV.length > 60 || strV.includes('\n')) {
+                longTextFields.push(`<div class="data-field" style="grid-column: 1 / -1"><div class="data-field-label">${escapeHTML(cleanKey)}</div><div class="data-field-value" style="background:var(--bg-alt); padding:12px; border-radius:8px; border:1px solid var(--border-color); white-space: pre-wrap;">${displayValue}</div></div>`);
+              } else {
+                textFields.push(`<div class="data-field"><div class="data-field-label">${escapeHTML(cleanKey)}</div><div class="data-field-value">${displayValue}</div></div>`);
+              }
+            }
+          }
+        }
+
+        let fieldsHTML = textFields.join('') + longTextFields.join('');
+        
+        if (mediaFields.length > 0) {
+          fieldsHTML += `<div style="grid-column: 1 / -1; margin-top: 8px; padding-top: 16px; border-top: 1px dashed var(--border-color);"><div class="data-field-label" style="margin-bottom: 12px; color: var(--text-main);">Media & External Links</div><div style="display:flex; gap:16px; flex-wrap:wrap; width:100%;">${mediaFields.join('')}</div></div>`;
+        }
+        if (fieldsHTML === '') {
+            fieldsHTML = `<div class="data-field" style="grid-column: 1 / -1; text-align:center; color: var(--text-muted); padding: 20px;">Empty Payload</div>`;
+        }
+
+        const timeStr = sub.createdAt ? new Date(Number(sub.createdAt)).toLocaleString() : 'Unknown Date';
+
+        return `
+          <div class="data-card">
+            <div class="data-header">
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <div class="data-important-title">${title}</div>
+                <div class="data-important-subtitle">${subtitle}</div>
+              </div>
+              <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+                <div class="data-timestamp">${timeStr}</div>
+                <div style="font-size:11px; color:var(--text-muted); background:var(--bg-alt); padding:4px 8px; border-radius:8px; border:1px solid var(--border-color);">${parsedDevice}</div>
+              </div>
+            </div>
+            <div class="data-body">${fieldsHTML}</div>
+          </div>
+        `;
+      }).join('');
     }
 
-    function IntegrationTab({ form, onMockSubmit }) {
-      const [copiedHTML, setCopiedHTML] = useState(false);
-      const [testEmail, setTestEmail] = useState('');
-      const [testMessage, setTestMessage] = useState('');
-      const [isSubmitting, setIsSubmitting] = useState(false);
-
-      const web3Key = form.web3formsKey || "YOUR_KEY_HERE";
-      const htmlSnippet = `<!-- HTML Form Snippet -->
-<form action="https://api.web3forms.com/submit" method="POST">
-  <input type="hidden" name="access_key" value="${web3Key}">
-  <label>Your Email:</label>
-  <input type="email" name="email" required>
-  <label>Message:</label>
-  <textarea name="message" required></textarea>
-  <button type="submit">Send</button>
-</form>`;
-
-      const copyCode = () => {
-        const el = document.createElement('textarea'); el.value = htmlSnippet;
-        document.body.appendChild(el); el.select();
-        try { document.execCommand('copy'); setCopiedHTML(true); setTimeout(() => setCopiedHTML(false), 2000); } catch (e) {}
-        document.body.removeChild(el);
-      };
-
-      const handleTestSubmit = async (e) => {
-        e.preventDefault(); setIsSubmitting(true);
-        try {
-          await onMockSubmit({ email: testEmail, message: testMessage, source: "Simulator" });
-          setTestEmail(''); setTestMessage(''); alert("Success! Check Submissions tab.");
-        } catch(err) { alert("Test failed. " + err.message); } finally { setIsSubmitting(false); }
-      };
-
-      return (
-        <div className="integration-grid">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div className="card">
-              <div className="card-header flex-between" style={{flexDirection: 'row', padding: '16px'}}>
-                <h3 className="title-h2" style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><IconCode /> HTML Snippet</h3>
-                <button onClick={copyCode} style={{ background: 'none', border: 'none', color: 'var(--primary-red)', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>{copiedHTML ? 'COPIED!' : 'COPY'}</button>
-              </div>
-              <div className="code-block"><div className="code-block-body">{htmlSnippet}</div></div>
-              <div style={{ padding: '16px', background: '#fbfbfb', fontSize: '12px', color: 'var(--text-muted)' }}><strong>Note:</strong> Paste this into your website to enable direct emails.</div>
-            </div>
-          </div>
-          <div>
-            <div className="card card-body">
-              <div className="flex-between mb-6" style={{flexDirection: 'row'}}>
-                <h2 className="title-h2" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{color: 'var(--primary-red)'}}><IconTerminal /></span> Simulator</h2>
-                <span className="badge badge-green">Live</span>
-              </div>
-              <p className="text-muted mb-6">Test your form. Submitting here writes to Firebase and fires an email.</p>
-              <form onSubmit={handleTestSubmit} style={{ background: '#fbfbfb', padding: '20px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                <div className="form-group">
-                  <label className="form-label">User Email</label>
-                  <input type="email" required value={testEmail} onChange={e => setTestEmail(e.target.value)} className="form-input" />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Message</label>
-                  <textarea required value={testMessage} onChange={e => setTestMessage(e.target.value)} className="form-textarea"></textarea>
-                </div>
-                <button type="submit" disabled={isSubmitting} className="btn btn-dark" style={{ width: '100%', padding: '14px' }}>{isSubmitting ? 'Sending...' : 'Send Test Submission'}</button>
-              </form>
-            </div>
-          </div>
-        </div>
-      );
+    // --- UI NAVIGATION & LOGIC ---
+    function switchRootView(viewId) {
+      document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
     }
 
-    function SettingsTab({ form, onDelete, onUpdate }) {
-      const [name, setName] = useState(form.name);
-      const [email, setEmail] = useState(form.targetEmail);
-      const [web3key, setWeb3Key] = useState(form.web3formsKey || '');
-      const [isSaving, setIsSaving] = useState(false);
-
-      const handleSave = async (e) => {
-        e.preventDefault(); setIsSaving(true);
-        await onUpdate({ name, targetEmail: email, web3formsKey: web3key });
-        setIsSaving(false); alert('Settings saved securely.');
-      };
-
-      return (
-        <div style={{ width: '100%', maxWidth: '600px' }}>
-          <div className="card mb-6">
-            <div className="card-header"><h2 className="title-h2" style={{ margin: 0, fontSize: '18px' }}>Project Settings</h2></div>
-            <form onSubmit={handleSave} className="card-body">
-              <div className="form-group">
-                <label className="form-label">Project Name</label>
-                <input type="text" value={name} onChange={e => setName(e.target.value)} required className="form-input" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Notification Email</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="form-input" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Web3Forms API Key</label>
-                <input type="text" value={web3key} onChange={e => setWeb3Key(e.target.value)} placeholder="e.g. 4a5c1f1c-7500-..." className="form-input" style={{ fontFamily: 'monospace' }} />
-              </div>
-              <button type="submit" disabled={isSaving} className="btn btn-primary" style={{ width: '100%' }}>{isSaving ? 'Saving...' : 'Save Changes'}</button>
-            </form>
-          </div>
-          <div className="card card-body flex-between" style={{ border: '1px solid #ffcccc', flexDirection: 'column', alignItems: 'stretch' }}>
-            <div>
-              <h2 className="title-h2" style={{ color: '#d32f2f', margin: 0, fontSize: '18px' }}>Delete Project</h2>
-              <p className="text-muted" style={{ marginTop: '4px' }}>Permanently wipe all stored submissions.</p>
-            </div>
-            <button type="button" onClick={() => { if (window.confirm('Delete form and all data?')) onDelete(); }} className="btn btn-danger" style={{ width: '100%' }}><IconTrash /> Delete Form</button>
-          </div>
-        </div>
-      );
+    function openWorkspaceView(viewId) {
+      document.querySelectorAll('.workspace-view').forEach(el => el.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    function switchFormTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    // Modal Toggles
+    function toggleNewFormEmail(e) {
+      e.preventDefault();
+      const cb = document.getElementById('new-form-email-toggle');
+      cb.checked = !cb.checked;
+      document.getElementById('new-form-web3-box').style.display = cb.checked ? 'block' : 'none';
+    }
+    
+    function toggleEmailSetup(e) {
+      e.preventDefault();
+      const cb = document.getElementById('settings-email-toggle');
+      cb.checked = !cb.checked;
+      document.getElementById('settings-web3-box').style.display = cb.checked ? 'block' : 'none';
+    }
+
+    // Copy Handlers
+    function copyTrackingCode() {
+      const code = document.getElementById('ui-tracking-code').textContent;
+      navigator.clipboard.writeText(code); alert("API Script Copied!");
+    }
+    function copySdkCode() {
+      const code = document.getElementById('ui-sdk-code').textContent;
+      navigator.clipboard.writeText(code); alert("Form Script Copied!");
+    }
+
   </script>
 </body>
 </html>
