@@ -501,15 +501,16 @@
           formsData = snap.docs.map(doc => ({id: doc.id, ...doc.data()})).sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
           document.getElementById('stat-form-count').textContent = formsData.length;
           renderForms();
+          
           if(activeFormId) {
             const f = formsData.find(x => x.id === activeFormId);
             if(f) {
+              // Ensure settings modal accurately reflects what is in the database
               document.getElementById('settings-email-toggle').checked = !!f.web3Key;
               document.getElementById('settings-web3-box').style.display = f.web3Key ? 'block' : 'none';
               document.getElementById('settings-web3-key').value = f.web3Key || '';
               updateFormSDKUI(f); 
             } else {
-              // Form was deleted, clear UI
               activeFormId = null;
               openWorkspaceView('ws-project');
             }
@@ -553,16 +554,32 @@
       document.getElementById('input-new-form-name').value = '';
     }
 
+    // FIXED: Properly saves web3key to database and provides UI feedback
     async function saveFormSettings() {
       const toggle = document.getElementById('settings-email-toggle').checked;
       const web3Key = document.getElementById('settings-web3-key').value;
       const btn = document.getElementById('btn-save-settings');
       btn.innerText = "Saving...";
-      await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('projects').doc(activeProjectId).collection('forms').doc(activeFormId).update({
-        web3Key: toggle ? web3Key : ''
-      });
-      btn.innerText = "Save Configuration";
-      alert("Settings updated!");
+      
+      try {
+        await db.collection('artifacts').doc(APP_ID)
+                .collection('users').doc(currentUser.uid)
+                .collection('projects').doc(activeProjectId)
+                .collection('forms').doc(activeFormId)
+                .update({ web3Key: toggle ? web3Key : '' });
+        
+        // Temporarily change button to show success
+        btn.innerText = "Saved Successfully!";
+        btn.style.background = "#10b981"; // Green
+        
+        setTimeout(() => {
+            btn.innerText = "Save Configuration";
+            btn.style.background = "var(--black)";
+        }, 2000);
+      } catch (e) {
+        alert("Failed to save settings: " + e.message);
+        btn.innerText = "Save Configuration";
+      }
     }
 
     async function deleteActiveForm() {
@@ -594,7 +611,6 @@
         grid.innerHTML = '<div class="bento-card" style="grid-column:1/-1;text-align:center;padding:60px 20px;"><p class="text-muted">No projects yet. Create one to begin.</p></div>';
         return;
       }
-      // Pass the ID as a string properly
       grid.innerHTML = projectsData.map(p => `
         <div class="bento-card clickable" onclick="selectProject('${p.id}')">
           <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div>
@@ -632,14 +648,13 @@
       const bucket = firebaseConfig.storageBucket;
       const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/artifacts/${APP_ID}/users/${currentUser.uid}/projects/${activeProjectId}/forms/${activeFormId}/submissions`;
       
+      // Email fetch uses dynamically requested web3key
       const emailScript = f.web3Key ? `
-      // Format Email beautifully
-      const emailPayload = { access_key: "${f.web3Key}", subject: "New Form Submission & Tracking Data", ...formDataObj };
-      emailPayload["--- System Details ---"] = "---";
-      if(window.FlowFormTracker.location) emailPayload["User Location"] = "https://maps.google.com/?q=" + window.FlowFormTracker.location.lat + "," + window.FlowFormTracker.location.lng;
-      if(window.FlowFormTracker.history.length > 0) emailPayload["Recent Clicks"] = window.FlowFormTracker.history.join(' -> ');
-      
-      await fetch('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(emailPayload) });
+        const emailPayload = { access_key: "${f.web3Key}", subject: "New Form Submission & Tracking Data", ...formDataObj };
+        emailPayload["--- System Details ---"] = "---";
+        if(window.FlowFormTracker.location) emailPayload["User Location"] = "https://maps.google.com/?q=" + window.FlowFormTracker.location.lat + "," + window.FlowFormTracker.location.lng;
+        if(window.FlowFormTracker.history.length > 0) emailPayload["Recent Clicks"] = window.FlowFormTracker.history.join(' -> ');
+        await fetch('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(emailPayload) });
       ` : '';
 
       const snippet = `<!-- FLOWFORM UNIFIED TRACKER & SDK -->
@@ -746,6 +761,11 @@ window.FlowFormTracker.init();
       activeFormId = fid;
       const f = formsData.find(x => x.id === fid);
       if (f) {
+        // Hydrate settings toggles dynamically immediately upon clicking the form
+        document.getElementById('settings-email-toggle').checked = !!f.web3Key;
+        document.getElementById('settings-web3-box').style.display = f.web3Key ? 'block' : 'none';
+        document.getElementById('settings-web3-key').value = f.web3Key || '';
+        
         updateFormSDKUI(f);
         openWorkspaceView('ws-form');
         listenToSubmissions();
@@ -791,15 +811,12 @@ window.FlowFormTracker.init();
       // 1. Group documents by Session ID
       const sessions = {};
       submissionsData.forEach(sub => {
-        // Fallback for older forms without session id
         const sid = sub.sessionId || sub.id; 
         if (!sessions[sid]) {
            sessions[sid] = { sessionId: sid, createdAt: 0, fields: {}, hasMedia: false, hasForm: false };
         }
-        // Take highest timestamp (fallback to 0 if undefined)
         sessions[sid].createdAt = Math.max(sessions[sid].createdAt, Number(sub.createdAt || 0));
         
-        // Merge flat fields. This overrides page views with actual form data.
         const systemKeys = ['id', 'formId', 'createdAt', 'sessionId'];
         for (const [k, v] of Object.entries(sub)) {
            if (!systemKeys.includes(k)) {
